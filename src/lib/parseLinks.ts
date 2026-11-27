@@ -1,3 +1,5 @@
+import { tryUrl } from './url';
+
 export type ParseResult = {
   links: string[];
   skipped: number;
@@ -5,12 +7,8 @@ export type ParseResult = {
 };
 
 function isHttpLink(line: string): boolean {
-  try {
-    const { protocol } = new URL(line);
-    return protocol === 'http:' || protocol === 'https:';
-  } catch {
-    return false;
-  }
+  const protocol = tryUrl(line)?.protocol;
+  return protocol === 'http:' || protocol === 'https:';
 }
 
 export function parseLinks(raw: string): ParseResult {

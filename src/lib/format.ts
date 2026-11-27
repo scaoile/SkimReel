@@ -1,3 +1,5 @@
+import { tryUrl } from './url';
+
 export function formatDuration(seconds: number): string {
   const total = Math.round(seconds);
   const hours = Math.floor(total / 3600);
@@ -9,19 +11,21 @@ export function formatDuration(seconds: number): string {
 }
 
 export function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return '';
-  }
+  return tryUrl(url)?.hostname.replace(/^www\./, '') ?? '';
 }
 
 export function fileNameOf(url: string): string {
+  const parsed = tryUrl(url);
+  if (!parsed) return url;
+  const last = parsed.pathname.split('/').filter(Boolean).pop() ?? '';
+  return decodeSegment(last) || parsed.hostname;
+}
+
+/** A file name is worth showing decoded, but a stray `%` must not break the grid. */
+function decodeSegment(segment: string): string {
   try {
-    const parsed = new URL(url);
-    const last = parsed.pathname.split('/').filter(Boolean).pop() ?? '';
-    return decodeURIComponent(last) || parsed.hostname;
+    return decodeURIComponent(segment);
   } catch {
-    return url;
+    return segment;
   }
 }

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { CAP, SAMPLE_TEXT } from './lib/samples';
+import { SAMPLE_TEXT } from './lib/samples';
 import { parseLinks } from './lib/parseLinks';
-import { selectVisible } from './lib/visibleVideos';
+import { MAX_CARDS, selectVisible } from './lib/visibleVideos';
 import type { Filter } from './lib/buckets';
 import { InputPanel } from './components/InputPanel';
 import { FilterControl } from './components/FilterControl';
@@ -12,6 +12,8 @@ export default function App() {
   const [durations, setDurations] = useState<Record<string, number>>({});
   const [failures, setFailures] = useState<Record<string, true>>({});
   const [filter, setFilter] = useState<Filter>('all');
+  // Remounts every card on Load, so a re-pasted list asks for metadata again.
+  const [generation, setGeneration] = useState(0);
 
   const handleMetadata = useCallback((url: string, seconds: number) => {
     if (!Number.isFinite(seconds) || seconds <= 0) return;
@@ -28,11 +30,12 @@ export default function App() {
     setDurations({});
     setFailures({});
     setFilter('all');
+    setGeneration((previous) => previous + 1);
     return parsed;
   }, []);
 
   const selection = useMemo(
-    () => selectVisible({ links, durations, failures, filter, cap: CAP }),
+    () => selectVisible({ links, durations, failures, filter, cap: MAX_CARDS }),
     [links, durations, failures, filter],
   );
 
@@ -55,6 +58,7 @@ export default function App() {
       <VideoGrid
         selection={selection}
         filter={filter}
+        generation={generation}
         durations={durations}
         failures={failures}
         onMetadata={handleMetadata}

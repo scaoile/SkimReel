@@ -9,9 +9,17 @@ type Props = {
   onError: (url: string) => void;
 };
 
+/** True only when a mouse pointer crosses the card's edge, not when it moves inside. */
+function crossesMouseEdge(event: React.PointerEvent<HTMLDivElement>): boolean {
+  if (event.pointerType !== 'mouse') return false;
+  // Ignore moves between the frame, the rail and the cue inside one card.
+  return !event.currentTarget.contains(event.relatedTarget as Node | null);
+}
+
 export function VideoCard({ url, duration, failed, onMetadata, onError }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const startedRef = useRef(false);
+  // True until the first play has put the preview back at zero, because the still frame sits partway in.
+  const firstPlayPending = useRef(true);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [hasFrame, setHasFrame] = useState(false);
@@ -29,10 +37,9 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
   const start = () => {
     const video = videoRef.current;
     if (!video) return;
-    if (!startedRef.current) {
-      startedRef.current = true;
+    if (firstPlayPending.current) {
+      firstPlayPending.current = false;
       try {
-        // The still frame sits a little way in, so a preview always begins at zero.
         video.currentTime = 0;
       } catch {
         // Nothing to rewind yet.
@@ -40,14 +47,10 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
     }
     video.playbackRate = 2;
     video.muted = true;
-    const attempt = video.play();
-    if (attempt && typeof attempt.then === 'function') {
-      attempt
-        .then(() => setPlaying(true))
-        .catch(() => setPlaying(false));
-    } else {
-      setPlaying(true);
-    }
+    video
+      .play()
+      .then(() => setPlaying(true))
+      .catch(() => setPlaying(false));
   };
 
   const pause = () => {
@@ -60,7 +63,7 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
     if (!video) return;
     video.pause();
     video.currentTime = 0;
-    startedRef.current = false;
+    firstPlayPending.current = true;
     setPlaying(false);
     setProgress(0);
   };
@@ -71,20 +74,16 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
   };
 
   const handlePointerOver = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== 'mouse') return;
-    // Ignore moves between the frame, the rail and the cue inside one card.
-    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-    start();
+    if (crossesMouseEdge(event)) start();
   };
 
   const handlePointerOut = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== 'mouse') return;
-    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-    rewind();
+    if (crossesMouseEdge(event)) rewind();
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse') return;
+    // The tap path is touch-only: a pen must never preview.
+    if (event.pointerType !== 'touch') return;
     toggle();
   };
 
@@ -97,9 +96,7 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
   const handleLoadedMetadata = () => {
     const video = videoRef.current;
     if (!video) return;
-    if (Number.isFinite(video.duration) && video.duration > 0) {
-      onMetadata(url, video.duration);
-    }
+    onMetadata(url, video.duration);
     try {
       // Frame zero is often a black or white fade. Two seconds in is more telling.
       const poster = Number.isFinite(video.duration)
@@ -162,18 +159,18 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
             </svg>
           </span>
         </div>
-        <span className="card__rail" aria-hidden="true">
-          <span className="card__rail-fill" style={{ transform: `scaleX(${progress})` }} />
+        <span className="card__rail-row">
+          <span className="card__rail" aria-hidden="true">
+            <span className="card__rail-fill" style={{ transform: `scaleX(${progress})` }} />
+          </span>
+          {duration === undefined ? null : (
+            <span className="card__time">{formatDuration(duration)}</span>
+          )}
         </span>
       </div>
       <div className="card__meta">
-        <p className="card__line">
-          <span className="card__name" title={url}>
-            {name}
-          </span>
-          <span className="card__time">
-            {duration === undefined ? null : formatDuration(duration)}
-          </span>
+        <p className="card__name" title={url}>
+          {name}
         </p>
         <p className="card__host">{host}</p>
       </div>

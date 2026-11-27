@@ -1,3 +1,14 @@
+/* Archivo, self-hosted: one latin woff2, variable on width (62-125%) and weight (400-700).
+   The app makes no network requests beyond media, so the typeface ships with it. */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url('/fonts/archivo-latin-var.woff2') format('woff2');
+}
+
 :root {
   color-scheme: light;
 
@@ -269,7 +280,8 @@ body {
   font-weight: 600;
 }
 
-/* Video card: a frame, its timecode rail, and one line of metadata. No box, no shadow. */
+/* Video card: a frame, its rail with the timecode at its end, then name and host.
+   No box, no shadow. */
 
 .card {
   min-width: 0;
@@ -345,9 +357,20 @@ body {
   opacity: 0;
 }
 
+/* The rail and its timecode are one row: the bar fills what the label leaves. */
+
+.card__rail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 18px;
+  margin-top: 6px;
+}
+
 .card__rail {
   position: relative;
-  display: block;
+  flex: 1 1 auto;
   height: 3px;
   overflow: hidden;
   background: var(--rule-strong);
@@ -374,15 +397,6 @@ body {
   font-size: 13px;
 }
 
-.card__line {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-  margin: 0;
-}
-
 .card__host {
   margin: 0;
   overflow: hidden;
@@ -394,6 +408,7 @@ body {
 
 .card__name {
   min-width: 0;
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -402,6 +417,7 @@ body {
 .card__time {
   flex: none;
   color: var(--ink-soft);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 

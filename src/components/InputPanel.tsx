@@ -6,7 +6,7 @@ type Props = {
   onLoad: (raw: string) => ParseResult;
 };
 
-function describe({ links, skipped, duplicates }: ParseResult): string | null {
+function feedbackFor({ links, skipped, duplicates }: ParseResult): string | null {
   if (skipped === 0 && duplicates === 0) return null;
 
   const parts = [`Loaded ${links.length} ${links.length === 1 ? 'video' : 'videos'}.`];
@@ -27,7 +27,7 @@ export function InputPanel({ initialText, onLoad }: Props) {
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    setFeedback(describe(onLoad(text)));
+    setFeedback(feedbackFor(onLoad(text)));
   };
 
   return (

@@ -1,18 +1,27 @@
-import { CAP } from '../lib/samples';
 import { FILTERS, type Filter } from '../lib/buckets';
-import type { VisibleVideos } from '../lib/visibleVideos';
+import { MAX_CARDS, type VisibleVideos } from '../lib/visibleVideos';
 import { VideoCard } from './VideoCard';
 
 type Props = {
   selection: VisibleVideos;
   filter: Filter;
+  /** Bumped by the shell on every Load; part of the card key, so cards remount. */
+  generation: number;
   durations: Record<string, number>;
   failures: Record<string, true>;
   onMetadata: (url: string, seconds: number) => void;
   onError: (url: string) => void;
 };
 
-export function VideoGrid({ selection, filter, durations, failures, onMetadata, onError }: Props) {
+export function VideoGrid({
+  selection,
+  filter,
+  generation,
+  durations,
+  failures,
+  onMetadata,
+  onError,
+}: Props) {
   const { visible, total, capped } = selection;
   const filterLabel = FILTERS.find((option) => option.id === filter)?.label ?? 'All';
   const empty = visible.length === 0;
@@ -21,7 +30,7 @@ export function VideoGrid({ selection, filter, durations, failures, onMetadata, 
     <section className="grid-region" aria-label="Videos">
       {capped ? (
         <p className="grid__notice">
-          Showing first {CAP} of {total} links.
+          Showing first {MAX_CARDS} of {total} links.
         </p>
       ) : null}
 
@@ -41,7 +50,7 @@ export function VideoGrid({ selection, filter, durations, failures, onMetadata, 
         <div className="grid">
           {visible.map((url) => (
             <VideoCard
-              key={url}
+              key={`${generation}:${url}`}
               url={url}
               duration={durations[url]}
               failed={Boolean(failures[url])}

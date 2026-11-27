@@ -98,6 +98,7 @@ Named as below, and these names are the vocabulary the code and tests should use
 - The application shell owns exactly four pieces of state: the parsed link list, a record of known durations keyed by link, a record of failed links, and the active filter. The raw text box contents and the last validation message are local to the input panel.
 - The grid's contents are always derived from those four via the visible-videos selector. Nothing about which videos are displayed is ever stored as its own state, so filter changes and newly learned durations cannot drift out of sync.
 - Loading a new list replaces all four: new links, empty durations, empty failures, filter back to All.
+- The shell also keeps a load generation counter, incremented on every Load. It exists only to remount cards, so a re-pasted list asks the browser for metadata again; it is not part of the grid's derivation and nothing else reads it.
 
 ### Card to shell contract
 

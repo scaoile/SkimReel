@@ -16,5 +16,3 @@ export const SAMPLE_LINKS: readonly string[] = [
 ];
 
 export const SAMPLE_TEXT = SAMPLE_LINKS.join('\n');
-
-export const CAP = 30;

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
+import { SAMPLE_TEXT } from './lib/samples';
 import { media } from './test/mediaStub';
 
 const previewCards = () => screen.getAllByRole('button', { name: /^Preview / });
@@ -120,6 +121,17 @@ describe('preview playback', () => {
 
     firePointer('pointerup', 'touch', card);
     await settlePlay();
+    expect(media.isPlaying(video)).toBe(false);
+  });
+
+  it('leaves a pen tap alone, so a stylus never previews', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    firePointer('pointerup', 'pen', card);
+    await settlePlay();
+
     expect(media.isPlaying(video)).toBe(false);
   });
 
@@ -297,6 +309,30 @@ describe('loading a new list', () => {
     expect(previewCards()).toHaveLength(1);
     expect(screen.getByText('Loading')).toBeInTheDocument();
     expect(screen.queryByText('Failed to load')).not.toBeInTheDocument();
+  });
+
+  it('starts every card over when the same list is pasted again', () => {
+    render(<App />);
+    const previousVideos = previewCards().map(videoOf);
+
+    act(() => {
+      previewCards().forEach((card) => media.reportDuration(videoOf(card), 45));
+    });
+    expect(screen.queryAllByText('Loading')).toHaveLength(0);
+    expect(screen.getAllByText('0:45')).toHaveLength(9);
+
+    load(SAMPLE_TEXT);
+
+    // A reused media element never fires loadedmetadata again, so a stale one stays Loading forever.
+    expect(previousVideos.every((video) => !video.isConnected)).toBe(true);
+    expect(screen.getAllByText('Loading')).toHaveLength(9);
+
+    act(() => {
+      previewCards().forEach((card) => media.reportDuration(videoOf(card), 12));
+    });
+
+    expect(screen.queryAllByText('Loading')).toHaveLength(0);
+    expect(screen.getAllByText('0:12')).toHaveLength(9);
   });
 
   it('stops a preview that belonged to the previous list', async () => {
