@@ -279,7 +279,7 @@ body {
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 264px), 1fr));
-  gap: 28px 20px;
+  gap: 32px 24px;
 }
 
 .grid__empty {
@@ -303,8 +303,63 @@ body {
    then the rail with the timecode at its end, then name and host. No shadow, no box. */
 
 .card {
+  position: relative;
   min-width: 0;
   margin: 0;
+  isolation: isolate;
+}
+
+/* Hover plate: transparent at rest, then dark and larger than the card.
+   Growing through inset means the grid never reflows while the card appears to lift. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: transparent;
+  /* Concentric with the frame: its 12px plus the 10px the plate grows by. */
+  border-radius: 22px;
+  transition:
+    inset 180ms ease,
+    background 180ms ease;
+}
+
+.card:not(.card--failed):hover::before,
+.card:not(.card--failed):focus-within::before {
+  inset: -10px;
+  background: var(--ink);
+}
+
+/* On the plate the labels invert, because the plate is what the eye reads as the card. */
+.card:hover .card__name,
+.card:focus-within .card__name {
+  color: var(--paper);
+}
+
+.card:hover .card__host,
+.card:focus-within .card__host {
+  color: rgba(231, 232, 227, 0.7);
+}
+
+.card:hover .card__time,
+.card:focus-within .card__time {
+  color: rgba(231, 232, 227, 0.74);
+}
+
+.card:hover .card__rail,
+.card:focus-within .card__rail {
+  background: rgba(231, 232, 227, 0.26);
+}
+
+.card:hover .card__rail-fill,
+.card:focus-within .card__rail-fill {
+  background: var(--paper);
+}
+
+.card:hover .card__rail-knob,
+.card:focus-within .card__rail-knob {
+  background: var(--paper);
+  border-color: var(--ink);
 }
 
 .card__stage {
@@ -325,7 +380,8 @@ body {
 }
 
 /* A light hairline on hover says the frame is a control, without a lift or a zoom. */
-.card__frame:hover {
+.card__frame:hover,
+.card:focus-within .card__frame {
   box-shadow: inset 0 0 0 1px rgba(245, 246, 242, 0.32);
 }
 
@@ -417,24 +473,43 @@ body {
   box-shadow: 0 0 0 4px var(--surface);
 }
 
-/* The rail and its timecode are one row: the bar fills what the label leaves. */
+/* The rail and its timecode are one row. The bar is a seek control: it reads its
+   position from --p, which playback writes per frame and dragging writes directly. */
 
 .card__rail-row {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  min-height: 16px;
+  min-height: 18px;
   margin-top: 12px;
 }
 
 .card__rail {
+  --p: 0;
   position: relative;
   flex: 1 1 auto;
   height: 4px;
-  overflow: hidden;
   background: var(--rule);
   border-radius: var(--r-pill);
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+/* A 4px line is impossible to grab, so the hit area is taller than the line itself. */
+.card__rail::before {
+  content: '';
+  position: absolute;
+  inset: -7px 0;
+}
+
+.card__rail--idle {
+  cursor: default;
+}
+
+.card__rail:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 5px;
 }
 
 .card__rail-fill {
@@ -442,9 +517,27 @@ body {
   inset: 0;
   background: var(--ink);
   border-radius: var(--r-pill);
-  transform: scaleX(0);
+  transform: scaleX(var(--p, 0));
   transform-origin: left center;
-  transition: transform 160ms linear;
+}
+
+.card__rail-knob {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--p, 0) * 100%);
+  width: 10px;
+  height: 10px;
+  background: var(--ink);
+  border: 2px solid var(--paper);
+  border-radius: var(--r-pill);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 140ms ease;
+}
+
+.card:hover .card__rail-knob,
+.card:focus-within .card__rail-knob,
+.card__rail-row--dragging .card__rail-knob {
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .card__meta {
@@ -511,6 +604,8 @@ body {
   .card__video,
   .card__cue,
   .card__sound,
+  .card__rail-knob,
+  .card::before,
   .panel__button,
   .filter__face {
     transition: none;

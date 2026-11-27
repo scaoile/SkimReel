@@ -134,6 +134,9 @@ Named as below, and these names are the vocabulary the code and tests should use
 - On mouse leave: pause and set the current time back to zero, so the next hover starts from the first frame.
 - On touch: a tap toggles play and pause on that card. A tap starts at 2x and muted, the same preview playback as hover, and pausing freezes where it is rather than rewinding. Rewinding is a hover-leave behavior only.
 - Keyboard play/pause takes the same path as a touch tap: same rate, same muting, same pause-without-rewind. The card is a focusable control that responds to Enter and Space.
+- The rail beneath each frame is a seek control, not only an indicator. Dragging it moves the playhead to that position live, and releasing stops it following. Scrubbing works with touch and pen, because it is not a preview.
+- The rail answers Home, End and the arrow keys — 5 seconds at a time, or 30 with Shift — and exposes its position to assistive tech as a labelled slider.
+- Seeking exists only once a duration is known. Before that the rail is decoration and is hidden from assistive tech.
 - Playback is per card and independent. Starting a second preview does not stop the first. This is a deliberate consequence of cards not knowing about each other; see Further Notes.
 
 ### Loading strategy
@@ -150,7 +153,8 @@ Named as below, and these names are the vocabulary the code and tests should use
 - The video element stays invisible until it has actually painted a frame. The card's own dark surface owns the colour until then, so no card flashes white or grey while loading.
 - Each playable card carries a small play cue over the still frame, hidden while playing, so a well that never paints still reads as something you can play.
 - The sound toggle sits at the frame's top right, 30px and round, showing a crossed speaker while muted and a plain speaker while unmuted. Its pressed state reflects whether sound is on, and its accessible name includes the file name so a screen reader can tell two toggles apart.
-- The duration sits on a thin rail beneath the frame that fills as the preview plays, so the label and the playhead are one element.
+- The duration sits at the far end of a thin rail beneath the frame. The rail is the playhead: it fills as the preview plays, grows a knob on hover, focus or drag, and becomes a slider once the duration is known. While dragging, the timecode shows the target position instead of the clip length.
+- Progress is painted once per animation frame rather than from the media element's `timeupdate` event, which fires about four times a second and makes the line step instead of run.
 - The loading badge reads "Loading" and is present exactly while the duration is unknown and the link has not failed.
 - The error tile shows the failing link and a short failure label, and is visually distinct from a loading or playable card. It is not focusable for playback because there is nothing to play.
 - Empty state copy is distinct per cause: no valid links in the pasted text versus no videos matching the selected bucket. The latter names the bucket.
@@ -178,6 +182,7 @@ Named as below, and these names are the vocabulary the code and tests should use
 - Cards are keyboard-focusable, show a visible focus ring, and act as buttons for playback purposes. The filter is a labelled single-choice group reachable and changeable by keyboard. The sound toggle is a real button in the tab order, labelled with its file name and exposing its pressed state.
 - Contrast and focus styling must survive the dark-on-light default look; the aesthetic itself is not otherwise specified here (see Further Notes).
 - Radius is nested by role rather than applied uniformly: 12px on a frame, 10px on the controls in the input panel and filter, 6px on chips inside a frame, and a pill on the rail and the sound toggle. Cards are not separated by shadows; the frame's own inset hairline does that work.
+- Hovering or focusing a playable card raises a dark plate behind it that grows about 10px past the card's edges and inverts its labels to paper. The plate grows through inset so the grid never reflows, its corner stays concentric with the frame, and failed cards never raise one.
 
 ### Hosting
 
@@ -216,6 +221,7 @@ Harness caveats worth designing around, because jsdom is not a browser:
 - A mouse pointer entering a card starts playback at 2x and muted. Leaving pauses and resets current time to zero. A rejected play promise surfaces nothing to the user and leaves the grid usable.
 - A pointer event with touch or pen type does not start playback.
 - A card starts muted. Its sound toggle changes only that card's audio, reports its pressed state, and does not start or stop the preview; an error tile offers no toggle at all.
+- The rail is a slider only once the duration is known. Dragging seeks to that position and stops following on release, Home, End and the arrows seek from the keyboard, the exposed value tracks the playhead, and touching the rail never starts a preview.
 - A touch tap starts playback, and a second tap pauses it.
 - Keyboard focus plus Enter or Space toggles playback on the focused card.
 - Each bucket shows exactly the right cards once durations are known, including the boundaries: 59.9 Short, 60 Medium, 300 Medium, 300.1 Long.
@@ -238,7 +244,7 @@ None. This is a new project with no existing test suite, so these tests establis
 - Filters other than duration, and sorting.
 - Fetching titles, thumbnails, tags, or any metadata beyond what the video file itself provides in the browser.
 - Importing links from files, and exporting or sharing a list.
-- A volume slider, a global mute across cards, a full-screen or detail player view, and playback controls beyond hover, tap and the per-card sound toggle.
+- A volume slider, a global mute across cards, a full-screen or detail player view, and playback controls beyond hover, tap, the per-card sound toggle and the per-card seek rail.
 - Server-side caching of durations.
 - Handling of CORS-restricted or hotlink-protected hosts beyond showing the error tile.
 - Cross-card coordination of playback: stopping one preview when another starts.

@@ -14,12 +14,18 @@ async function settlePlay() {
 }
 
 /**
- * jsdom has no PointerEvent, so fireEvent drops pointerType. Dispatching a plain
- * Event with the property attached is the only way to exercise the mouse gate.
+ * jsdom has no PointerEvent, so fireEvent drops pointerType and clientX. Dispatching a
+ * MouseEvent with the properties attached is the only way to exercise pointer behaviour.
  */
-function firePointer(type: 'pointerover' | 'pointerout' | 'pointerup', pointerType: string, element: Element) {
-  const event = new Event(type, { bubbles: true });
+function firePointer(
+  kind: 'pointerover' | 'pointerout' | 'pointerup' | 'pointerdown' | 'pointermove' | 'pointercancel',
+  pointerType: string,
+  element: Element,
+  init: { clientX?: number; pointerId?: number } = {},
+) {
+  const event = new MouseEvent(kind, { bubbles: true, clientX: init.clientX ?? 0 });
   Object.defineProperty(event, 'pointerType', { value: pointerType });
+  Object.defineProperty(event, 'pointerId', { value: init.pointerId ?? 1 });
   fireEvent(element, event);
 }
 
@@ -428,6 +434,81 @@ describe('card sound', () => {
     const toggle = screen.getAllByRole('button', { name: /^Sound for / })[0];
 
     firePointer('pointerup', 'touch', toggle);
+    await settlePlay();
+
+    expect(media.isPlaying(video)).toBe(false);
+  });
+});
+
+describe('the seek rail', () => {
+  it('offers no slider until the duration is known', () => {
+    render(<App />);
+
+    expect(screen.queryAllByRole('slider')).toHaveLength(0);
+  });
+
+  it('seeks to the dragged position and stops following on release', () => {
+    render(<App />);
+    const video = videoOf(previewCards()[0]);
+    act(() => {
+      media.reportDuration(video, 100);
+    });
+
+    const rail = screen.getByRole('slider', { name: 'Seek flower.mp4' });
+    vi.spyOn(rail, 'getBoundingClientRect').mockReturnValue({
+      left: 100,
+      width: 200,
+      top: 0,
+      height: 4,
+      right: 300,
+      bottom: 4,
+      x: 100,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    firePointer('pointerdown', 'mouse', rail, { clientX: 250 });
+    expect(media.currentTime(video)).toBeCloseTo(75, 5);
+
+    firePointer('pointermove', 'mouse', rail, { clientX: 150 });
+    expect(media.currentTime(video)).toBeCloseTo(25, 5);
+
+    firePointer('pointerup', 'mouse', rail, { clientX: 150 });
+    firePointer('pointermove', 'mouse', rail, { clientX: 150 });
+
+    expect(media.currentTime(video)).toBeCloseTo(25, 5);
+  });
+
+  it('seeks from the keyboard and reports its value', () => {
+    render(<App />);
+    const video = videoOf(previewCards()[0]);
+    act(() => {
+      media.reportDuration(video, 100);
+    });
+
+    const rail = screen.getByRole('slider', { name: 'Seek flower.mp4' });
+    expect(rail).toHaveAttribute('aria-valuemax', '100');
+
+    fireEvent.keyDown(rail, { key: 'Home' });
+    expect(media.currentTime(video)).toBeCloseTo(0, 5);
+
+    fireEvent.keyDown(rail, { key: 'ArrowRight' });
+    expect(media.currentTime(video)).toBeCloseTo(5, 5);
+
+    fireEvent.keyDown(rail, { key: 'End' });
+    expect(media.currentTime(video)).toBeCloseTo(100, 5);
+    expect(rail).toHaveAttribute('aria-valuenow', '100');
+  });
+
+  it('does not start playback when the rail is touched', async () => {
+    render(<App />);
+    const video = videoOf(previewCards()[0]);
+    act(() => {
+      media.reportDuration(video, 100);
+    });
+
+    const rail = screen.getByRole('slider', { name: 'Seek flower.mp4' });
+    firePointer('pointerup', 'touch', rail);
     await settlePlay();
 
     expect(media.isPlaying(video)).toBe(false);
