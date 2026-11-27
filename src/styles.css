@@ -68,14 +68,13 @@ body {
   padding: 32px 24px 96px;
 }
 
-/* Masthead: equipment label on the left, one line of instruction on the right. */
+/* Masthead: the wordmark, then one line of instruction on the same left edge. */
 
 .masthead {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 6px 40px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--ink);
 }
@@ -91,7 +90,7 @@ body {
 
 .masthead__lead {
   margin: 0;
-  max-width: min(46ch, 100%);
+  max-width: min(58ch, 100%);
   color: var(--ink-soft);
 }
 
@@ -756,11 +755,6 @@ body {
 @media (max-width: 720px) {
   .shell {
     padding: 24px 16px 72px;
-  }
-
-  .masthead {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .panel {

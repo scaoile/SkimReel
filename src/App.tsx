@@ -72,8 +72,7 @@ export default function App() {
       <header className="masthead">
         <h1 className="masthead__title">SkimReel</h1>
         <p className="masthead__lead">
-          Paste video links, one per line. Hover a card to skim it at 2×; click one to open
-          the video on its own site.
+          Skim at 2× by hovering, or tapping on a phone. Click to open the original.
         </p>
       </header>
 
