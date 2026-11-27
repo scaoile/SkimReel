@@ -15,6 +15,18 @@ export const SAMPLE_FILE_LINKS: readonly string[] = [
   'https://media.w3.org/2010/05/sintel/missing-clip.mp4',
 ];
 
-export const SAMPLE_LINKS: readonly string[] = [...SAMPLE_FILE_LINKS];
+/**
+ * Long-lived uploads, one of each link shape. Nothing here is previewed: a YouTube
+ * card opens on YouTube instead.
+ */
+export const SAMPLE_YOUTUBE_LINKS: readonly string[] = [
+  'https://www.youtube.com/watch?v=jNQXAC9IVRw',
+  'https://youtu.be/aqz-KE-bpKQ',
+];
+
+export const SAMPLE_LINKS: readonly string[] = [
+  ...SAMPLE_FILE_LINKS,
+  ...SAMPLE_YOUTUBE_LINKS,
+];
 
 export const SAMPLE_TEXT = SAMPLE_LINKS.join('\n');

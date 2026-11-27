@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { fileNameOf, formatDuration, hostOf } from '../lib/format';
+import { youTubeIdOf, youTubeThumbnail } from '../lib/youtube';
 
 type Props = {
   url: string;
@@ -35,6 +36,21 @@ function SpeakerOn() {
   );
 }
 
+function OutboundArrow() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">
+      <path
+        d="M8.5 6.5H17.5V15.5M17.5 6.5L7 17"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function SpeakerOff() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
@@ -65,6 +81,7 @@ export function VideoCard({ url, duration, failed, onMetadata, onError, onOpen }
   const [muted, setMuted] = useState(true);
   const name = fileNameOf(url);
   const host = hostOf(url);
+  const youTubeId = youTubeIdOf(url);
   const seekable = duration !== undefined && Number.isFinite(duration) && duration > 0;
 
   useEffect(() => {
@@ -273,6 +290,51 @@ export function VideoCard({ url, duration, failed, onMetadata, onError, onOpen }
           <p className="card__failed-label">Failed to load</p>
         </div>
         <p className="card__url">{url}</p>
+      </article>
+    );
+  }
+
+  // A YouTube link is a signpost, not a preview: there is nothing to play here, so the
+  // card only says where it goes and hands the click to the shell.
+  if (youTubeId) {
+    return (
+      <article className="card card--link">
+        <div className="card__stage">
+          <div
+            className="card__frame"
+            role="button"
+            tabIndex={0}
+            aria-label={`Open ${youTubeId} on YouTube`}
+            onClick={() => onOpen(url)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              onOpen(url);
+            }}
+          >
+            <img
+              className="card__thumb"
+              src={youTubeThumbnail(youTubeId)}
+              alt=""
+              loading="lazy"
+            />
+            <span className="card__cue card__cue--out">
+              <OutboundArrow />
+            </span>
+            <span className="card__chip">YouTube</span>
+          </div>
+        </div>
+
+        <div className="card__rail-row">
+          <span className="card__length-note">Length unknown</span>
+        </div>
+
+        <div className="card__meta">
+          <p className="card__name" title={url}>
+            {youTubeId}
+          </p>
+          <p className="card__host">{host}</p>
+        </div>
       </article>
     );
   }

@@ -337,6 +337,10 @@ body {
   color: var(--paper);
 }
 
+.card:hover .card__length-note {
+  color: rgba(231, 232, 227, 0.74);
+}
+
 .card:hover .card__host {
   color: rgba(231, 232, 227, 0.7);
 }
@@ -419,6 +423,24 @@ body {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
+/* The corner puck means "this one leaves the page", in the same place and at the same
+   size as the sound control, because a frame carries one control whichever card it is. */
+.card__cue.card__cue--out {
+  inset: 10px 10px auto auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  background: rgba(245, 246, 242, 0.94);
+  border: 1px solid rgba(22, 25, 26, 0.14);
+  border-radius: var(--r-pill);
+  color: var(--ink);
+}
+
+.card__cue--out svg {
+  filter: none;
+}
+
 .card__frame[data-playing='true'] .card__cue {
   opacity: 0;
 }
@@ -439,6 +461,35 @@ body {
   color: var(--ink);
   font-size: 12px;
   line-height: 1.45;
+}
+
+/* A YouTube card paints a frame from YouTube's image host and names its destination.
+   Nothing here plays, so there is no badge to wait on. */
+
+.card__thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--frame);
+}
+
+.card__chip {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 2px 8px;
+  background: var(--ink);
+  border: 1px solid rgba(245, 246, 242, 0.28);
+  border-radius: var(--r-chip);
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.card__length-note {
+  color: var(--ink-soft);
+  font-size: 12px;
 }
 
 .card__sound {

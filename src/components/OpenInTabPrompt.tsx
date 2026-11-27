@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { fileNameOf, hostOf } from '../lib/format';
+import { youTubeIdOf } from '../lib/youtube';
 
 type Props = {
   url: string;
@@ -19,6 +20,7 @@ export function OpenInTabPrompt({ url, onConfirm, onCancel }: Props) {
   const bodyId = useId();
   const name = fileNameOf(url);
   const host = hostOf(url);
+  const youTube = youTubeIdOf(url) !== null;
 
   useEffect(() => {
     // Send focus back to whatever opened this, so the keyboard user is not stranded.
@@ -51,7 +53,9 @@ export function OpenInTabPrompt({ url, onConfirm, onCancel }: Props) {
           Open in a new tab?
         </h2>
         <p className="prompt__body" id={bodyId}>
-          {name} opens on {host}. This page stays put.
+          {youTube
+            ? `This YouTube video opens on ${host}. This page stays put.`
+            : `${name} opens on ${host}. This page stays put.`}
         </p>
 
         <div className="prompt__check">

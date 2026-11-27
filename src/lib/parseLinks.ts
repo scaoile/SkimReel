@@ -1,4 +1,5 @@
 import { tryUrl } from './url';
+import { youTubeIdOf } from './youtube';
 
 export type ParseResult = {
   links: string[];
@@ -24,11 +25,14 @@ export function parseLinks(raw: string): ParseResult {
       skipped += 1;
       continue;
     }
-    if (seen.has(trimmed)) {
+    // Two spellings of one video are one card, so the video id is the identity.
+    const youTubeId = youTubeIdOf(trimmed);
+    const key = youTubeId ? `youtube:${youTubeId}` : trimmed;
+    if (seen.has(key)) {
       duplicates += 1;
       continue;
     }
-    seen.add(trimmed);
+    seen.add(key);
     links.push(trimmed);
   }
 
