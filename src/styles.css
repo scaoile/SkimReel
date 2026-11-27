@@ -346,6 +346,11 @@ body {
   color: rgba(231, 232, 227, 0.74);
 }
 
+.card:hover .card__length-note,
+.card:focus-within .card__length-note {
+  color: rgba(231, 232, 227, 0.74);
+}
+
 .card:hover .card__rail,
 .card:focus-within .card__rail {
   background: rgba(231, 232, 227, 0.26);
@@ -423,6 +428,19 @@ body {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
+/* A pale glyph vanishes on a bright thumbnail, so the outbound cue carries its own plate. */
+.card__cue.card__cue--out {
+  color: var(--ink);
+}
+
+.card__cue--out svg {
+  padding: 9px;
+  background: rgba(245, 246, 242, 0.94);
+  border: 1px solid rgba(22, 25, 26, 0.14);
+  border-radius: var(--r-pill);
+  filter: none;
+}
+
 .card__frame[data-playing='true'] .card__cue {
   opacity: 0;
 }
@@ -443,6 +461,38 @@ body {
   color: var(--ink);
   font-size: 12px;
   line-height: 1.45;
+}
+
+/* A YouTube card is a signpost, not a well: it paints a thumbnail and says where it goes. */
+
+.card__thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.card__thumb--ready {
+  opacity: 1;
+}
+
+.card__chip {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 2px 8px;
+  background: rgba(245, 246, 242, 0.94);
+  border-radius: var(--r-chip);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.card__length-note {
+  color: var(--ink-soft);
+  font-size: 12px;
 }
 
 .card__sound {
@@ -597,6 +647,107 @@ body {
   font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+
+/* The prompt: the only floating layer in the app, so it is the only place a
+   shadow earns its keep. Everything else sits flat on the paper. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(22, 25, 26, 0.46);
+}
+
+.prompt {
+  width: min(440px, 100%);
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-frame);
+  box-shadow: 0 24px 48px rgba(14, 17, 18, 0.28);
+}
+
+.prompt__title {
+  margin: 0 0 10px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.prompt__body {
+  margin: 0 0 18px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.prompt__check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.prompt__check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.prompt__check input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.prompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.prompt__secondary,
+.prompt__primary {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: var(--r-control);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.prompt__secondary {
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+}
+
+.prompt__secondary:hover {
+  background: rgba(22, 25, 26, 0.06);
+}
+
+.prompt__primary {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  color: var(--surface);
+}
+
+.prompt__primary:hover {
+  background: #000;
+  border-color: #000;
+}
+
+.prompt__secondary:focus-visible,
+.prompt__primary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

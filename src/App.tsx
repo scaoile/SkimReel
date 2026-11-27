@@ -2,10 +2,16 @@ import { useCallback, useMemo, useState } from 'react';
 import { SAMPLE_TEXT } from './lib/samples';
 import { parseLinks } from './lib/parseLinks';
 import { MAX_CARDS, selectVisible } from './lib/visibleVideos';
+import { readSkipOpenWarning, writeSkipOpenWarning } from './lib/openWarning';
 import type { Filter } from './lib/buckets';
 import { InputPanel } from './components/InputPanel';
 import { FilterControl } from './components/FilterControl';
 import { VideoGrid } from './components/VideoGrid';
+import { OpenInTabPrompt } from './components/OpenInTabPrompt';
+
+function openInNewTab(url: string) {
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
 
 export default function App() {
   const [links, setLinks] = useState<string[]>(() => parseLinks(SAMPLE_TEXT).links);
@@ -14,6 +20,8 @@ export default function App() {
   const [filter, setFilter] = useState<Filter>('all');
   // Remounts every card on Load, so a re-pasted list asks for metadata again.
   const [generation, setGeneration] = useState(0);
+  const [skipOpenWarning, setSkipOpenWarning] = useState(() => readSkipOpenWarning());
+  const [pendingOpen, setPendingOpen] = useState<string | null>(null);
 
   const handleMetadata = useCallback((url: string, seconds: number) => {
     if (!Number.isFinite(seconds) || seconds <= 0) return;
@@ -39,13 +47,33 @@ export default function App() {
     [links, durations, failures, filter],
   );
 
+  const handleOpen = useCallback(
+    (url: string) => {
+      if (skipOpenWarning) {
+        openInNewTab(url);
+        return;
+      }
+      setPendingOpen(url);
+    },
+    [skipOpenWarning],
+  );
+
+  const handleConfirmOpen = (skipNextTime: boolean) => {
+    if (skipNextTime && !skipOpenWarning) {
+      writeSkipOpenWarning(true);
+      setSkipOpenWarning(true);
+    }
+    if (pendingOpen) openInNewTab(pendingOpen);
+    setPendingOpen(null);
+  };
+
   return (
     <div className="shell">
       <header className="masthead">
         <h1 className="masthead__title">SkimReel</h1>
         <p className="masthead__lead">
-          Paste direct video links, one per line. Hover a card to play a muted preview at 2×; move
-          away and it rewinds.
+          Paste video links, one per line. Hover a direct file to skim it at 2×; a YouTube link
+          opens on YouTube.
         </p>
       </header>
 
@@ -63,7 +91,15 @@ export default function App() {
         failures={failures}
         onMetadata={handleMetadata}
         onError={handleError}
+        onOpen={handleOpen}
       />
+
+      {pendingOpen ? (
+        <OpenInTabPrompt
+          onConfirm={handleConfirmOpen}
+          onCancel={() => setPendingOpen(null)}
+        />
+      ) : null}
     </div>
   );
 }

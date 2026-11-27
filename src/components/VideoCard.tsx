@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { fileNameOf, formatDuration, hostOf } from '../lib/format';
+import { youTubeThumbnail } from '../lib/youtube';
 
 type Props = {
   url: string;
   duration: number | undefined;
   failed: boolean;
+  /** Set when the link is a YouTube video, which cannot be previewed here. */
+  youTubeId?: string;
   onMetadata: (url: string, seconds: number) => void;
   onError: (url: string) => void;
+  onOpen: (url: string) => void;
 };
 
 /** True only when a mouse pointer crosses the card's edge, not when it moves inside. */
@@ -49,7 +53,22 @@ function SpeakerOff() {
   );
 }
 
-export function VideoCard({ url, duration, failed, onMetadata, onError }: Props) {
+function OutboundCue() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+      <path
+        d="M8.5 6.5H17.5V15.5M17.5 6.5L7 17"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onError, onOpen }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   // True until the first play has put the preview back at zero, because the still frame sits partway in.
@@ -59,6 +78,7 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
   // Coarse position for the slider's accessible value; the visual fill is driven per frame.
   const [position, setPosition] = useState(0);
   const [hasFrame, setHasFrame] = useState(false);
+  const [hasThumb, setHasThumb] = useState(false);
   const [muted, setMuted] = useState(true);
   const name = fileNameOf(url);
   const host = hostOf(url);
@@ -239,6 +259,9 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
   const handleTimeUpdate = () => {
     const video = videoRef.current;
     if (!video) return;
+    // The still frame sits a couple of seconds in. That is not preview progress,
+    // so the rail only tracks the playhead once a preview has actually started.
+    if (!playing && !scrubbing) return;
     setPosition(video.currentTime);
     paintProgress(video.currentTime);
   };
@@ -250,6 +273,50 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
           <p className="card__failed-label">Failed to load</p>
         </div>
         <p className="card__url">{url}</p>
+      </article>
+    );
+  }
+
+  if (youTubeId) {
+    return (
+      <article className="card card--link">
+        <div className="card__stage">
+          <div
+            className="card__frame"
+            role="button"
+            tabIndex={0}
+            aria-label={`Open ${youTubeId} on YouTube`}
+            onClick={() => onOpen(url)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              onOpen(url);
+            }}
+          >
+            <img
+              className={hasThumb ? 'card__thumb card__thumb--ready' : 'card__thumb'}
+              src={youTubeThumbnail(youTubeId)}
+              alt=""
+              loading="lazy"
+              onLoad={() => setHasThumb(true)}
+            />
+            <span className="card__cue card__cue--out">
+              <OutboundCue />
+            </span>
+            <span className="card__chip">YouTube</span>
+          </div>
+        </div>
+
+        <div className="card__rail-row">
+          <span className="card__length-note">Length unknown</span>
+        </div>
+
+        <div className="card__meta">
+          <p className="card__name" title={url}>
+            {youTubeId}
+          </p>
+          <p className="card__host">{host}</p>
+        </div>
       </article>
     );
   }

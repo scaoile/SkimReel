@@ -1,5 +1,6 @@
 import { FILTERS, type Filter } from '../lib/buckets';
 import { MAX_CARDS, type VisibleVideos } from '../lib/visibleVideos';
+import { youTubeIdOf } from '../lib/youtube';
 import { VideoCard } from './VideoCard';
 
 type Props = {
@@ -11,6 +12,7 @@ type Props = {
   failures: Record<string, true>;
   onMetadata: (url: string, seconds: number) => void;
   onError: (url: string) => void;
+  onOpen: (url: string) => void;
 };
 
 export function VideoGrid({
@@ -21,6 +23,7 @@ export function VideoGrid({
   failures,
   onMetadata,
   onError,
+  onOpen,
 }: Props) {
   const { visible, total, capped } = selection;
   const filterLabel = FILTERS.find((option) => option.id === filter)?.label ?? 'All';
@@ -54,8 +57,10 @@ export function VideoGrid({
               url={url}
               duration={durations[url]}
               failed={Boolean(failures[url])}
+              youTubeId={youTubeIdOf(url) ?? undefined}
               onMetadata={onMetadata}
               onError={onError}
+              onOpen={onOpen}
             />
           ))}
         </div>
