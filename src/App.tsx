@@ -72,8 +72,8 @@ export default function App() {
       <header className="masthead">
         <h1 className="masthead__title">SkimReel</h1>
         <p className="masthead__lead">
-          Paste video links, one per line. Hover a direct file to skim it at 2×; a YouTube link
-          opens on YouTube.
+          Paste video links, one per line. Hover a card to skim it at 2×; click one to open
+          the video on its own site.
         </p>
       </header>
 
@@ -96,6 +96,7 @@ export default function App() {
 
       {pendingOpen ? (
         <OpenInTabPrompt
+          url={pendingOpen}
           onConfirm={handleConfirmOpen}
           onCancel={() => setPendingOpen(null)}
         />

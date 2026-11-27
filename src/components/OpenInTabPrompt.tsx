@@ -1,16 +1,24 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { fileNameOf, hostOf } from '../lib/format';
 
 type Props = {
+  url: string;
   onConfirm: (skipNextTime: boolean) => void;
   onCancel: () => void;
 };
 
-export function OpenInTabPrompt({ onConfirm, onCancel }: Props) {
+/**
+ * The one floating layer in the app: a card is a preview, so opening the video itself
+ * leaves the page. It says what will happen, where it goes, and can be switched off.
+ */
+export function OpenInTabPrompt({ url, onConfirm, onCancel }: Props) {
   const [skip, setSkip] = useState(false);
   const primaryRef = useRef<HTMLButtonElement>(null);
   const checkboxId = useId();
   const titleId = useId();
   const bodyId = useId();
+  const name = fileNameOf(url);
+  const host = hostOf(url);
 
   useEffect(() => {
     // Send focus back to whatever opened this, so the keyboard user is not stranded.
@@ -40,11 +48,10 @@ export function OpenInTabPrompt({ onConfirm, onCancel }: Props) {
         onKeyDown={handleKeyDown}
       >
         <h2 className="prompt__title" id={titleId}>
-          Open on YouTube?
+          Open in a new tab?
         </h2>
         <p className="prompt__body" id={bodyId}>
-          SkimReel can't preview YouTube links here, so this opens the video on youtube.com in a
-          new tab.
+          {name} opens on {host}. This page stays put.
         </p>
 
         <div className="prompt__check">
@@ -67,7 +74,7 @@ export function OpenInTabPrompt({ onConfirm, onCancel }: Props) {
             className="prompt__primary"
             onClick={() => onConfirm(skip)}
           >
-            Open YouTube
+            Open in new tab
           </button>
         </div>
       </div>

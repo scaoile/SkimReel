@@ -15,19 +15,6 @@ export const SAMPLE_FILE_LINKS: readonly string[] = [
   'https://media.w3.org/2010/05/sintel/missing-clip.mp4',
 ];
 
-/**
- * Each answered oEmbed with 200 and served a thumbnail when last checked.
- * The short share form is here on purpose, so both shapes are exercised.
- */
-export const SAMPLE_YOUTUBE_LINKS: readonly string[] = [
-  'https://www.youtube.com/watch?v=jNQXAC9IVRw',
-  'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
-  'https://youtu.be/R6MlUcmOul8',
-];
-
-export const SAMPLE_LINKS: readonly string[] = [
-  ...SAMPLE_FILE_LINKS,
-  ...SAMPLE_YOUTUBE_LINKS,
-];
+export const SAMPLE_LINKS: readonly string[] = [...SAMPLE_FILE_LINKS];
 
 export const SAMPLE_TEXT = SAMPLE_LINKS.join('\n');

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
-import { SAMPLE_FILE_LINKS, SAMPLE_TEXT, SAMPLE_YOUTUBE_LINKS } from './lib/samples';
+import { SAMPLE_FILE_LINKS, SAMPLE_TEXT } from './lib/samples';
 
 describe('SkimReel first paint', () => {
   it('opens with the sample links in the box and a card for every one of them', () => {
@@ -11,10 +11,9 @@ describe('SkimReel first paint', () => {
       SAMPLE_FILE_LINKS.length,
     );
     expect(screen.getAllByText('Loading')).toHaveLength(SAMPLE_FILE_LINKS.length);
-    expect(screen.getAllByRole('button', { name: /^Open / })).toHaveLength(
-      SAMPLE_YOUTUBE_LINKS.length,
+    expect(screen.getAllByRole('button', { name: / in a new tab$/ })).toHaveLength(
+      SAMPLE_FILE_LINKS.length,
     );
-    expect(screen.getAllByText('YouTube')).toHaveLength(SAMPLE_YOUTUBE_LINKS.length);
     expect(screen.getByRole('radio', { name: 'All' })).toBeChecked();
   });
 

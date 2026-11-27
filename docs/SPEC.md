@@ -11,7 +11,7 @@ People who have a handful of video links (direct video files) have no fast way t
 
 ## Solution
 
-A single-page web app. The user pastes a list of video links, one per line, into a text box and loads them. The page shows the videos as a responsive grid of cards. Hovering a card with a mouse plays a muted, fast-forwarded (2x) preview of that video, and moving the mouse away stops it and returns it to the start. On touch devices, where there is no hover, tapping a card toggles playback. A single filter lets the user narrow the grid by video duration: Short, Medium, Long, or All. Links that fail to load show a clear error tile instead of breaking the grid. A YouTube link becomes a different card, one that cannot be previewed here and so opens on YouTube once the visitor agrees. The page opens pre-filled with a working sample list so there is something to see immediately.
+A single-page web app. The user pastes a list of video links, one per line, into a text box and loads them. The page shows the videos as a responsive grid of cards. Hovering a card with a mouse plays a muted, fast-forwarded (2x) preview of that video, and moving the mouse away stops it and returns it to the start. On touch devices, where there is no hover, tapping a card toggles playback. A single filter lets the user narrow the grid by video duration: Short, Medium, Long, or All. Links that fail to load show a clear error tile instead of breaking the grid. Clicking a card offers to open the original video in a new tab, and asks first until the visitor says not to ask again. The page opens pre-filled with a working sample list so there is something to see immediately.
 
 ## User Stories
 
@@ -71,14 +71,13 @@ A single-page web app. The user pastes a list of video links, one per line, into
 54. As a keyboard user, I want visible focus styling on cards and controls, so that I can see where I am.
 55. As a keyboard user, I want the filter operable by keyboard, so that I can change buckets without a mouse.
 56. As a visitor, I want the page reachable at a public web address, so that I can open and share it without installing anything.
-57. As a visitor, I want to paste a YouTube link alongside direct files, so that one list can hold both kinds of video.
-58. As a visitor, I want a YouTube link to become its own kind of card with the video's thumbnail, so that I can tell it apart from a direct file at a glance.
-59. As a visitor, I want a YouTube card to say its length is unknown, so that I understand why a length filter hides it.
-60. As a visitor, I want activating a YouTube card to warn me first, so that I am not surprised by leaving the page.
-61. As a visitor, I want a "don't ask again" choice on that warning, so that repeat visits stop interrupting me.
-62. As a visitor, I want that choice to survive a reload, so that I decide once.
-63. As a visitor, I want to dismiss the warning and stay put, so that a stray click does not take me away.
-64. As a keyboard user, I want to open a YouTube card with Enter or Space, so that the grid is not mouse-only.
+57. As a visitor, I want clicking a card to offer to open the video in a new tab, so that I can watch the whole thing when a preview is not enough.
+58. As a visitor, I want that offer to name the file and the site it goes to, so that I know what I am opening.
+59. As a visitor, I want a "don't ask again" choice on that offer, so that repeat visits stop interrupting me.
+60. As a visitor, I want that choice to survive a reload, so that I decide once.
+61. As a visitor, I want to dismiss the offer and stay put, so that a stray click does not take me away.
+62. As a visitor on a phone, I want a tap to preview rather than to open, so that touching the grid never throws me out of the page.
+63. As a keyboard user, I want a focusable control that opens the video, so that opening is not mouse-only.
 
 ## Implementation Decisions
 
@@ -98,8 +97,7 @@ Named as below, and these names are the vocabulary the code and tests should use
 - **Video grid** — lays out cards, renders the cap notice, and renders the empty states.
 - **Video card** — renders one video, handles hover and tap playback, reports metadata, and shows loading, duration, and error states.
 - **Filter control** — the four duration buckets as a keyboard-operable single-choice control.
-- **YouTube link parser** — pure function turning a link into a YouTube video id or nothing, covering the watch, share, shorts, live and embed shapes.
-- **Open prompt** — the warning shown before a YouTube card leaves the page, carrying the remember choice.
+- **Open prompt** — the modal that confirms opening a card's video in a new tab, carrying the remember choice.
 - **Duration bucketing** — pure function mapping a duration in seconds to Short, Medium, or Long.
 - **Visible-videos selector** — pure function taking the parsed link list, the durations record, the load-failure record, the active filter, and the cap, and returning what the grid should display plus whether the cap trimmed the list.
 
@@ -112,7 +110,8 @@ Named as below, and these names are the vocabulary the code and tests should use
 
 ### Card to shell contract
 
-- A card reports learned metadata upward with `onMetadata(url, duration)` and failures with `onError(url)`. Cards never read the filter and never hide themselves.
+- A card reports learned metadata upward with `onMetadata(url, duration)`, failures with `onError(url)`, and a request to leave with `onOpen(url)`. Cards never read the filter and never hide themselves.
+- The shell owns the open prompt and the new tab; a card only says which link was asked for.
 - A card owns only its own playback state: playing or paused, and the reset position.
 - The shell records a duration only when it is a finite, positive number. Metadata that reports a duration of zero, NaN, or Infinity leaves the video in the unknown state rather than inventing a bucket or an error.
 - The shell must not treat a repeated report for the same link as a change that reorders or re-plays the grid; records are keyed by URL and simply overwrite.
@@ -123,7 +122,6 @@ Named as below, and these names are the vocabulary the code and tests should use
 - Boundary rule in one line, so no implementer guesses: 59.9 is Short, 60 is Medium, 300 is Medium, 300.1 is Long.
 - Unknown duration: visible under All only, with a loading badge. Hidden under Short, Medium, and Long.
 - Failed link: visible under All only, as an error tile. Never visible under a bucket.
-- A YouTube link never learns a duration, so it follows the unknown rule for its whole life: visible under All, hidden under every bucket.
 - Default filter is All, including on first paint of the sample list.
 - Changing the filter never triggers a reload, a re-parse, or a reset of known durations.
 
@@ -145,6 +143,9 @@ Named as below, and these names are the vocabulary the code and tests should use
 - On mouse enter: set playback rate to 2x, apply the card's sound setting, loop the preview, then play. A rejected play promise is swallowed silently — no error state, no console-visible user-facing text, no change to the card's visuals.
 - A hovered preview loops, because the card is playing for as long as the pointer rests on it; a tap or key preview plays through once and stops at the end.
 - On mouse leave: pause, set the current time back to zero, clear the loop and mute the card again, so the next hover starts from the first frame, muted, as it began.
+- A mouse or pen click on the frame asks to open the original video in a new tab. On a pointer, playback is hover's job, so a click has nothing else to do.
+- A touch tap never opens anything: it toggles playback, and the click the browser synthesizes afterwards is ignored, so one tap gets one answer.
+- Enter and Space on the focused card keep toggling playback. The host line under the file name is the keyboard and screen-reader route to the open prompt, because one control cannot both preview and leave.
 - On touch: a tap toggles play and pause on that card. A tap starts at 2x and muted, the same preview playback as hover, and pausing freezes where it is rather than rewinding. Rewinding is a hover-leave behavior only.
 - Keyboard play/pause takes the same path as a touch tap: same rate, same muting, same pause-without-rewind. The card is a focusable control that responds to Enter and Space.
 - The rail beneath each frame is a seek control, not only an indicator. Dragging it moves the playhead to that position live, and releasing stops it following. Scrubbing works with touch and pen, because it is not a preview.
@@ -172,18 +173,18 @@ Named as below, and these names are the vocabulary the code and tests should use
 - The error tile shows the failing link and a short failure label, and is visually distinct from a loading or playable card. It is not focusable for playback because there is nothing to play.
 - Empty state copy is distinct per cause: no valid links in the pasted text versus no videos matching the selected bucket. The latter names the bucket.
 - Validation feedback after Load is a quiet single line that appears only when something was dropped, e.g. how many lines were skipped as invalid and how many duplicates were collapsed. Nothing appears when every line was used.
-- The frame's top right corner belongs to exactly one control, whatever the card: a sound toggle on a clip, an outbound arrow on a YouTube card. Both are the same 30px paper puck with an ink glyph and a hairline, so the grid reads as one system.
-- A YouTube card wears an ink "YouTube" chip at the frame's foot, where a clip wears its loading badge. Ink, not paper, so it reads on a dark thumbnail and a bright one alike.
-- Where a clip shows a timecode, a YouTube card shows "Length unknown", so the row keeps its height and the reason it stays out of the buckets is on the card.
+- The frame's top right corner belongs to one control: the 30px paper sound puck with an ink glyph and a hairline.
+- The host line under the file name is a button, not text. It carries a dotted underline that solidifies on hover and focus, inverts with the card under the hover plate, and is labelled "Open <name> in a new tab", so opening is reachable without a pointer.
 
-### YouTube links
+### Opening the original
 
-- A link is YouTube when its host and path match a watch, share, shorts, live or embed shape. Everything else is treated as a direct file, as before.
-- A YouTube card is a signpost, not a preview: no media element, no hover playback, no sound toggle and no seek rail. It shows the thumbnail from YouTube's image host, a YouTube chip and an outbound cue, and its accessible name reads "Open <id> on YouTube".
-- Its length cannot be known without an API, so it never enters a bucket. It reads "Length unknown" where a clip shows its timecode, and a length filter hides it.
-- Activating a card, by click, tap, Enter or Space, opens the video in a new tab after the prompt below, unless the visitor has opted out.
-- The prompt is a modal: a paper panel on a scrim, titled "Open on YouTube?", explaining that the link cannot be previewed here. It carries a "Don't ask again" checkbox and two actions, "Open YouTube" and "Stay here". Escape and the dismiss action close it and open nothing; the primary action takes focus on open and focus returns to the card on close.
+- Clicking a card with a mouse or pen, or activating the host-line button, asks before leaving the page. Nothing opens without an answer.
+- The prompt is a modal: a paper panel on a scrim, titled "Open in a new tab?". Its body names the file and the host it goes to, so the visitor is not guessing which of two `trailer.mp4` files is about to open.
+- It carries a "Don't ask again" checkbox and two actions, "Open in new tab" and "Stay here". Escape, the scrim and "Stay here" all close it and open nothing. The primary action takes focus on open, and focus returns to whatever opened the prompt on close.
+- Confirming opens the link in a new tab with `noopener` and `noreferrer`, then closes the prompt. The grid behind it is untouched: no card reloads, no duration is lost, no filter changes.
+- A remembered choice skips the prompt entirely, including on first paint, and the card click opens the tab directly.
 - The remember choice is the single exception to this app's no-persistence rule: one flag in local storage. If storage is missing or throws, the choice still holds for the session and the app never breaks.
+- Error tiles are not controls and do not open anything; the failing link is already printed on them.
 
 ### Sample data
 
@@ -193,14 +194,12 @@ Named as below, and these names are the vocabulary the code and tests should use
 - Every playable sample must answer `video/mp4` and advertise byte ranges, so seeking and poster frames work.
 - Composition requirement stands: at least two clips per bucket, and one deliberate failure so the error tile is visible on first load.
 - Every sample link uses https. The page is served over https, so plain http media would be blocked as mixed content and would arrive as a failure rather than a preview.
-- Three YouTube links sit at the end of the sample list, each confirmed live by asking YouTube's oEmbed endpoint and fetching its thumbnail. One uses the short share form and two use watch links, so both shapes are exercised.
 - The same list pre-fills the text box, so the user can see the expected format and immediately experiment.
 
 ### Input handling
 
 - Parsing trims each line, drops blanks, drops anything that does not parse as an http or https URL, and removes duplicates while keeping first-seen order.
 - Only http and https are accepted; other schemes are dropped silently like any other invalid line.
-- Direct files and YouTube links pass the same test; which card they become is decided later, by the YouTube link parser.
 - Load reads the text box contents, parses them, and commits the result. A committed empty list is a legitimate state that shows the no-valid-links empty state.
 
 ### Styling and accessibility
@@ -210,7 +209,7 @@ Named as below, and these names are the vocabulary the code and tests should use
 - Contrast and focus styling must survive the dark-on-light default look; the aesthetic itself is not otherwise specified here (see Further Notes).
 - Radius is nested by role rather than applied uniformly: 8px on a frame, 6px on the controls in the input panel and filter, 4px on chips inside a frame, and a pill on the rail and the corner pucks. Cards are not separated by shadows; the frame's own inset hairline does that work.
 - Hovering a card raises a plate behind it that grows about 10px past the card's edges and inverts its labels to paper. The plate is ink thinned out, not ink itself, so it reads as a hover state rather than a hole in the page; its corner stays concentric with the frame (8px plus the 10px it grows by). It grows through inset so the grid never reflows, and failed cards never raise one.
-- The plate is hover only. A focused card keeps its focus ring but not the plate, so nothing appears to stay expanded after the pointer has gone. YouTube cards raise it too: they are interactive, just not playable.
+- The plate is hover only. A focused card keeps its focus ring but not the plate, so nothing appears to stay expanded after the pointer has gone. Every card raises it; an error tile does not.
 - The open prompt is the only floating layer in the app, so it is the only place a shadow is earned: a paper panel with the same radius and hairline as everything else, sitting on a scrim. Nothing else casts one.
 
 ### Hosting
@@ -229,6 +228,8 @@ Tests exercise externally visible behavior: what a person sees and can do after 
 One seam only: **the whole page, rendered in jsdom**. Everything below it — the link parser, duration bucketing, and the visible-videos selector — is covered through this seam rather than by direct unit tests. One seam, one test file per behavior group, no mocking of our own modules.
 
 Harness: **Vitest + jsdom + React Testing Library**, driving the page's default export the way a user would.
+
+Opening a tab is the one other seam: tests replace `window.open` with a spy, which is how the confirm path is proved without leaving the page.
 
 The single replacement is the media element. A stand-in for `HTMLMediaElement` is installed once in shared test setup, not per test, and exposes:
 
@@ -250,8 +251,9 @@ Harness caveats worth designing around, because jsdom is not a browser:
 - A mouse pointer entering a card starts playback at 2x and muted. Leaving pauses and resets current time to zero. A rejected play promise surfaces nothing to the user and leaves the grid usable.
 - A pointer event with touch or pen type does not start playback.
 - A card starts muted. Its sound toggle changes only that card's audio, reports its pressed state, and does not start or stop the preview; an error tile offers no toggle at all.
-- A YouTube link renders a link card with a thumbnail, no media element and no length, and appears under All only.
-- Activating a link card opens the prompt, which leads with focus on its primary action. Confirming opens a new tab with noopener and dismisses the prompt; dismissing or pressing Escape opens nothing. Ticking the box means the next activation opens straight away, and a remembered choice skips the prompt from first paint.
+- Clicking a card opens the prompt, which leads with focus on its primary action and names the file and host. Confirming opens a new tab with noopener and noreferrer and dismisses the prompt; dismissing, pressing Escape or clicking the scrim opens nothing. Ticking the box means the next click opens straight away, and a remembered choice skips the prompt from first paint.
+- A touch tap previews and never opens the prompt, and neither the sound toggle nor the rail is a way out.
+- The host line opens the prompt from the keyboard, and the prompt returns focus to it on close.
 - The remember choice survives storage being unavailable: it still holds for the session and nothing throws.
 - The rail is a slider only once the duration is known. Dragging seeks to that position and stops following on release, Home, End and the arrows seek from the keyboard, the exposed value tracks the playhead, and touching the rail never starts a preview.
 - A touch tap starts playback, and a second tap pauses it.
@@ -272,15 +274,15 @@ None. This is a new project with no existing test suite, so these tests establis
 
 - Pagination, infinite scroll, and virtualized or lazily loaded offscreen videos.
 - A backend, accounts, saved lists, or persistence beyond the single remember flag the open prompt keeps.
-- Embedded players: a YouTube video is never played inside this page, only opened elsewhere. Vimeo and any other streaming format remain unsupported.
+- Streaming formats and embedded players such as YouTube or Vimeo links. Only direct video file links are supported; anything else arrives as an error tile.
 - Filters other than duration, and sorting.
-- Fetching titles, tags, or metadata beyond what the file itself provides and the thumbnail YouTube serves for a video id.
+- Fetching titles, thumbnails, tags, or any metadata beyond what the video file itself provides in the browser.
 - Importing links from files, and exporting or sharing a list.
 - A volume slider, a global mute across cards, a full-screen or detail player view, and playback controls beyond hover, tap, the per-card sound toggle and the per-card seek rail.
 - Server-side caching of durations.
 - Handling of CORS-restricted or hotlink-protected hosts beyond showing the error tile.
 - Cross-card coordination of playback: stopping one preview when another starts.
-- Analytics, telemetry, error reporting, and any network calls other than media requests and YouTube thumbnails.
+- Analytics, telemetry, error reporting, and any network calls other than media requests.
 
 ## Further Notes
 

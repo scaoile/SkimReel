@@ -1,12 +1,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
+import { media } from './test/mediaStub';
 
-const openCards = () => screen.getAllByRole('button', { name: /^Open .* on YouTube$/ });
-const linkCards = () => screen.getAllByRole('button', { name: /^Open / });
-
-/** The three YouTube samples, in paste order. */
-const FIRST_OPEN_URL = 'https://www.youtube.com/watch?v=jNQXAC9IVRw';
+const previewCards = () => screen.getAllByRole('button', { name: /^Preview / });
+const videoOf = (card: HTMLElement) => card.querySelector('video') as HTMLVideoElement;
+const FIRST_URL = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
 
 /**
  * Node 26 ships its own `localStorage` getter, undefined without --localstorage-file,
@@ -31,65 +30,48 @@ function installStorage() {
   return store;
 }
 
-describe('YouTube links', () => {
+/** jsdom has no PointerEvent, so pointerType has to be attached by hand. */
+function firePointer(kind: 'pointerdown' | 'pointerup', pointerType: string, element: Element) {
+  const event = new MouseEvent(kind, { bubbles: true });
+  Object.defineProperty(event, 'pointerType', { value: pointerType });
+  Object.defineProperty(event, 'pointerId', { value: 1 });
+  fireEvent(element, event);
+}
+
+describe('opening a card in a new tab', () => {
   beforeEach(() => {
     installStorage();
     vi.restoreAllMocks();
   });
 
-  it('renders a link card with a thumbnail and no media element', () => {
-    render(<App />);
-
-    const cards = openCards();
-    expect(cards).toHaveLength(3);
-    expect(cards[0]).toHaveAccessibleName('Open jNQXAC9IVRw on YouTube');
-    expect(cards[0].querySelector('video')).toBeNull();
-    expect(cards[0].querySelector('img')).toHaveAttribute(
-      'src',
-      'https://img.youtube.com/vi/jNQXAC9IVRw/hqdefault.jpg',
-    );
-    expect(screen.queryAllByRole('slider')).toHaveLength(0);
-  });
-
-  it('offers no length and therefore appears under All only', async () => {
-    render(<App />);
-    const user = userEvent.setup();
-
-    expect(screen.getAllByText('Length unknown')).toHaveLength(3);
-
-    await user.click(screen.getByRole('radio', { name: 'Short' }));
-    expect(screen.queryAllByRole('button', { name: /^Open / })).toHaveLength(0);
-
-    await user.click(screen.getByRole('radio', { name: 'All' }));
-    expect(linkCards()).toHaveLength(3);
-  });
-
-  it('asks before opening a new tab', async () => {
+  it('asks first and names the file and its host', async () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<App />);
     const user = userEvent.setup();
 
-    await user.click(openCards()[0]);
+    await user.click(previewCards()[0]);
 
-    const dialog = screen.getByRole('dialog', { name: 'Open on YouTube?' });
-    expect(dialog).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Open in a new tab?' });
+    expect(dialog).toHaveTextContent(
+      'flower.mp4 opens on interactive-examples.mdn.mozilla.net. This page stays put.',
+    );
     expect(screen.getByLabelText("Don't ask again")).not.toBeChecked();
     expect(open).not.toHaveBeenCalled();
   });
 
-  it('opens the link and stays quiet afterwards once the box is ticked', async () => {
+  it('opens with noopener and stays quiet once the box was ticked', async () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<App />);
     const user = userEvent.setup();
 
-    await user.click(openCards()[0]);
+    await user.click(previewCards()[0]);
     await user.click(screen.getByLabelText("Don't ask again"));
-    await user.click(screen.getByRole('button', { name: 'Open YouTube' }));
+    await user.click(screen.getByRole('button', { name: 'Open in new tab' }));
 
-    expect(open).toHaveBeenCalledWith(FIRST_OPEN_URL, '_blank', 'noopener,noreferrer');
+    expect(open).toHaveBeenCalledWith(FIRST_URL, '_blank', 'noopener,noreferrer');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    await user.click(openCards()[0]);
+    await user.click(previewCards()[0]);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(open).toHaveBeenCalledTimes(2);
@@ -100,11 +82,11 @@ describe('YouTube links', () => {
     render(<App />);
     const user = userEvent.setup();
 
-    await user.click(openCards()[0]);
-    await user.click(screen.getByRole('button', { name: 'Open YouTube' }));
+    await user.click(previewCards()[0]);
+    await user.click(screen.getByRole('button', { name: 'Open in new tab' }));
     expect(open).toHaveBeenCalledTimes(1);
 
-    await user.click(openCards()[0]);
+    await user.click(previewCards()[0]);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
@@ -113,11 +95,11 @@ describe('YouTube links', () => {
     render(<App />);
     const user = userEvent.setup();
 
-    await user.click(openCards()[0]);
+    await user.click(previewCards()[0]);
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    await user.click(openCards()[0]);
+    await user.click(previewCards()[0]);
     await user.click(screen.getByRole('button', { name: 'Stay here' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
@@ -130,10 +112,10 @@ describe('YouTube links', () => {
     render(<App />);
     const user = userEvent.setup();
 
-    await user.click(openCards()[0]);
+    await user.click(previewCards()[0]);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(open).toHaveBeenCalledWith(FIRST_OPEN_URL, '_blank', 'noopener,noreferrer');
+    expect(open).toHaveBeenCalledWith(FIRST_URL, '_blank', 'noopener,noreferrer');
   });
 
   it('keeps working when storage is unavailable', async () => {
@@ -142,32 +124,59 @@ describe('YouTube links', () => {
     render(<App />);
     const user = userEvent.setup();
 
-    await user.click(openCards()[0]);
+    await user.click(previewCards()[0]);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Don't ask again"));
-    await user.click(screen.getByRole('button', { name: 'Open YouTube' }));
+    await user.click(screen.getByRole('button', { name: 'Open in new tab' }));
     expect(open).toHaveBeenCalledTimes(1);
 
     // The choice still holds for this session; only surviving a reload is lost.
-    await user.click(openCards()[0]);
+    await user.click(previewCards()[0]);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(open).toHaveBeenCalledTimes(2);
   });
 
-  it('opens from the keyboard', async () => {
+  it('does not treat a touch tap as a request to leave', async () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<App />);
-    const card = openCards()[0];
+    const card = previewCards()[0];
+    const video = videoOf(card);
 
-    card.focus();
-    expect(card).toHaveFocus();
-
+    firePointer('pointerdown', 'touch', card);
+    firePointer('pointerup', 'touch', card);
     await act(async () => {
-      fireEvent.keyDown(card, { key: 'Enter' });
+      await Promise.resolve();
     });
 
+    expect(media.isPlaying(video)).toBe(true);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it('opens from the keyboard through the host line', async () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    render(<App />);
+    const user = userEvent.setup();
+
+    const control = screen.getAllByRole('button', { name: / in a new tab$/ })[0];
+    control.focus();
+    expect(control).toHaveFocus();
+
+    await user.keyboard('{Enter}');
+
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it('leaves the sound toggle and the rail out of it', async () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    render(<App />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getAllByRole('button', { name: /^Sound for / })[0]);
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(open).not.toHaveBeenCalled();
   });
 });

@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { fileNameOf, formatDuration, hostOf } from '../lib/format';
-import { youTubeThumbnail } from '../lib/youtube';
 
 type Props = {
   url: string;
   duration: number | undefined;
   failed: boolean;
-  /** Set when the link is a YouTube video, which cannot be previewed here. */
-  youTubeId?: string;
   onMetadata: (url: string, seconds: number) => void;
   onError: (url: string) => void;
   onOpen: (url: string) => void;
@@ -53,32 +50,18 @@ function SpeakerOff() {
   );
 }
 
-function OutboundCue() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-      <path
-        d="M8.5 6.5H17.5V15.5M17.5 6.5L7 17"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onError, onOpen }: Props) {
+export function VideoCard({ url, duration, failed, onMetadata, onError, onOpen }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   // True until the first play has put the preview back at zero, because the still frame sits partway in.
   const firstPlayPending = useRef(true);
+  // Which kind of pointer last pressed the card, so a tap is not answered twice.
+  const lastPointer = useRef<string>('mouse');
   const [playing, setPlaying] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
   // Coarse position for the slider's accessible value; the visual fill is driven per frame.
   const [position, setPosition] = useState(0);
   const [hasFrame, setHasFrame] = useState(false);
-  const [hasThumb, setHasThumb] = useState(false);
   const [muted, setMuted] = useState(true);
   const name = fileNameOf(url);
   const host = hostOf(url);
@@ -228,6 +211,16 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
     event.preventDefault();
   };
 
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    lastPointer.current = event.pointerType;
+  };
+
+  const handleClick = () => {
+    // A touch already toggled playback; opening a tab as well would be two answers to one tap.
+    if (lastPointer.current === 'touch') return;
+    onOpen(url);
+  };
+
   const handlePointerOver = (event: React.PointerEvent<HTMLElement>) => {
     if (crossesMouseEdge(event)) start('hover');
   };
@@ -284,50 +277,6 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
     );
   }
 
-  if (youTubeId) {
-    return (
-      <article className="card card--link">
-        <div className="card__stage">
-          <div
-            className="card__frame"
-            role="button"
-            tabIndex={0}
-            aria-label={`Open ${youTubeId} on YouTube`}
-            onClick={() => onOpen(url)}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter' && event.key !== ' ') return;
-              event.preventDefault();
-              onOpen(url);
-            }}
-          >
-            <img
-              className={hasThumb ? 'card__thumb card__thumb--ready' : 'card__thumb'}
-              src={youTubeThumbnail(youTubeId)}
-              alt=""
-              loading="lazy"
-              onLoad={() => setHasThumb(true)}
-            />
-            <span className="card__cue card__cue--out">
-              <OutboundCue />
-            </span>
-            <span className="card__chip">YouTube</span>
-          </div>
-        </div>
-
-        <div className="card__rail-row">
-          <span className="card__length-note">Length unknown</span>
-        </div>
-
-        <div className="card__meta">
-          <p className="card__name" title={url}>
-            {youTubeId}
-          </p>
-          <p className="card__host">{host}</p>
-        </div>
-      </article>
-    );
-  }
-
   // The label is the clip's length, except while dragging, when it becomes the scrub target.
   const timeLabel =
     duration === undefined
@@ -346,6 +295,8 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
           aria-pressed={playing}
           aria-label={`Preview ${name}`}
           data-playing={playing}
+          onPointerDown={handlePointerDown}
+          onClick={handleClick}
           onPointerUp={handlePointerUp}
           onKeyDown={handleKeyDown}
         >
@@ -416,7 +367,15 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
         <p className="card__name" title={url}>
           {name}
         </p>
-        <p className="card__host">{host}</p>
+        <button
+          type="button"
+          className="card__open"
+          aria-label={`Open ${name} in a new tab`}
+          title={host}
+          onClick={() => onOpen(url)}
+        >
+          {host}
+        </button>
       </div>
     </article>
   );

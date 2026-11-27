@@ -1,6 +1,5 @@
 import { FILTERS, type Filter } from '../lib/buckets';
 import { MAX_CARDS, type VisibleVideos } from '../lib/visibleVideos';
-import { youTubeIdOf } from '../lib/youtube';
 import { VideoCard } from './VideoCard';
 
 type Props = {
@@ -57,7 +56,6 @@ export function VideoGrid({
               url={url}
               duration={durations[url]}
               failed={Boolean(failures[url])}
-              youTubeId={youTubeIdOf(url) ?? undefined}
               onMetadata={onMetadata}
               onError={onError}
               onOpen={onOpen}

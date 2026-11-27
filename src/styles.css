@@ -346,10 +346,6 @@ body {
   color: rgba(231, 232, 227, 0.74);
 }
 
-.card:hover .card__length-note {
-  color: rgba(231, 232, 227, 0.74);
-}
-
 .card:hover .card__rail {
   background: rgba(231, 232, 227, 0.26);
 }
@@ -424,24 +420,6 @@ body {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
-/* The outbound cue is the same corner puck as the sound control, in the same place:
-   one control per frame, top right, whichever kind of card it is. */
-.card__cue.card__cue--out {
-  inset: 10px 10px auto auto;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  background: rgba(245, 246, 242, 0.94);
-  border: 1px solid rgba(22, 25, 26, 0.14);
-  border-radius: var(--r-pill);
-  color: var(--ink);
-}
-
-.card__cue--out svg {
-  filter: none;
-}
-
 .card__frame[data-playing='true'] .card__cue {
   opacity: 0;
 }
@@ -462,40 +440,6 @@ body {
   color: var(--ink);
   font-size: 12px;
   line-height: 1.45;
-}
-
-/* A YouTube card is a signpost, not a well: it paints a thumbnail and says where it goes. */
-
-.card__thumb {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 220ms ease;
-}
-
-.card__thumb--ready {
-  opacity: 1;
-}
-
-/* The chip names the destination, so it carries ink rather than paper and reads on
-   any thumbnail, dark or bright. */
-.card__chip {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  padding: 2px 8px;
-  background: var(--ink);
-  border-radius: var(--r-chip);
-  color: var(--paper);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.card__length-note {
-  color: var(--ink-soft);
-  font-size: 12px;
 }
 
 .card__sound {
@@ -619,6 +563,47 @@ body {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The host line is the way out of the card, for anyone the pointer cannot reach,
+   so it is a real button wearing the same quiet type as the host it replaces. */
+.card__open {
+  justify-self: start;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted var(--rule-strong);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.card__open:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.card:hover .card__open {
+  color: rgba(231, 232, 227, 0.7);
+  border-bottom-color: rgba(231, 232, 227, 0.4);
+}
+
+.card:hover .card__open:hover {
+  color: var(--paper);
+  border-bottom-color: var(--paper);
+}
+
+.card__open:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .card__time {
