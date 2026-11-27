@@ -1,0 +1,467 @@
+:root {
+  color-scheme: light;
+
+  /* Light table paper, ink, and one colour reserved for failure. */
+  --paper: #e7e8e3;
+  --surface: #f5f6f2;
+  --ink: #16191a;
+  --ink-soft: #59615e;
+  --rule: #c5c8be;
+  --rule-strong: #a9ada1;
+  --frame: #0e1112;
+  --oxide: #8e3b32;
+
+  --font-ui: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --radius: 2px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.shell {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px 96px;
+}
+
+/* Masthead: equipment label on the left, one line of instruction on the right. */
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 40px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.masthead__title {
+  margin: 0;
+  font-size: clamp(30px, 4.4vw, 46px);
+  font-weight: 700;
+  font-stretch: 78%;
+  line-height: 0.94;
+  letter-spacing: -0.012em;
+}
+
+.masthead__lead {
+  margin: 0;
+  max-width: min(46ch, 100%);
+  color: var(--ink-soft);
+}
+
+/* Input panel */
+
+.panel {
+  display: grid;
+  gap: 8px;
+  padding: 24px 0 4px;
+}
+
+.panel__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panel__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.panel__input {
+  width: 100%;
+  min-height: 168px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.panel__input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.panel__button {
+  min-height: 48px;
+  padding: 0 22px;
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  color: var(--surface);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.panel__button:hover {
+  background: #000;
+  border-color: #000;
+}
+
+.panel__button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.panel__hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.panel__feedback {
+  margin: 0;
+  min-height: 22px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+/* Control bar */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 16px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.filter {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.filter__legend {
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.filter__track {
+  display: inline-flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+}
+
+.filter__option {
+  position: relative;
+  display: flex;
+}
+
+.filter__option input {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.filter__face {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.filter__option + .filter__option .filter__face {
+  border-left: 1px solid var(--rule-strong);
+}
+
+.filter__face:hover {
+  background: rgba(22, 25, 26, 0.06);
+}
+
+.filter__option input:checked + .filter__face {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.filter__option input:checked + .filter__face:hover {
+  background: #000;
+}
+
+.filter__option input:focus-visible + .filter__face {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.filter__hint {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+/* Grid */
+
+.grid-region {
+  padding-top: 20px;
+}
+
+.grid__notice {
+  margin: 0 0 18px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 264px), 1fr));
+  gap: 26px 18px;
+}
+
+.grid__empty {
+  margin: 36px 0;
+  max-width: 48ch;
+  color: var(--ink-soft);
+}
+
+.grid__empty-lead {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Video card: a frame, its timecode rail, and one line of metadata. No box, no shadow. */
+
+.card {
+  min-width: 0;
+  margin: 0;
+}
+
+.card__target {
+  display: grid;
+  min-width: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.card__target:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.card__frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--frame);
+}
+
+.card__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--frame);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+/* The well owns the colour until a frame actually exists, so nothing flashes white. */
+
+.card__video--ready {
+  opacity: 1;
+}
+
+.card__badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  padding: 1px 6px;
+  background: rgba(245, 246, 242, 0.94);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* A blank well is honest: metadata-only preload often paints no frame.
+   The cue says the frame is playable so the emptiness reads as intentional. */
+
+.card__cue {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(245, 246, 242, 0.62);
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.card__cue svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+.card__target[data-playing='true'] .card__cue {
+  opacity: 0;
+}
+
+.card__rail {
+  position: relative;
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  background: var(--rule-strong);
+}
+
+.card__rail-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 160ms linear;
+}
+
+.card__target[data-playing='true'] .card__frame {
+  box-shadow: inset 0 0 0 1px rgba(245, 246, 242, 0.4);
+}
+
+.card__meta {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.card__line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+}
+
+.card__host {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card__time {
+  flex: none;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Failed link: the one place colour appears. */
+
+.card--failed .card__frame {
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--oxide);
+}
+
+.card__failed-label {
+  margin: 0;
+  color: var(--oxide);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card__url {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card__rail-fill,
+  .card__video,
+  .card__cue {
+    transition: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 24px 16px 72px;
+  }
+
+  .masthead {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .panel__row {
+    grid-template-columns: 1fr;
+  }
+
+  .panel__button {
+    width: 100%;
+  }
+
+  .filter__track {
+    display: flex;
+    width: 100%;
+  }
+
+  .filter__face {
+    min-width: 0;
+    padding: 0 8px;
+  }
+}

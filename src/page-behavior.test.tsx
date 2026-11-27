@@ -1,0 +1,272 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import App from './App';
+import { media } from './test/mediaStub';
+
+const previewCards = () => screen.getAllByRole('button', { name: /^Preview / });
+const videoOf = (card: HTMLElement) => card.querySelector('video') as HTMLVideoElement;
+
+async function settlePlay() {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
+/**
+ * jsdom has no PointerEvent, so fireEvent drops pointerType. Dispatching a plain
+ * Event with the property attached is the only way to exercise the mouse gate.
+ */
+function firePointer(type: 'pointerover' | 'pointerout' | 'pointerup', pointerType: string, element: Element) {
+  const event = new Event(type, { bubbles: true });
+  Object.defineProperty(event, 'pointerType', { value: pointerType });
+  fireEvent(element, event);
+}
+
+function load(text: string) {
+  fireEvent.change(screen.getByLabelText('Video links'), { target: { value: text } });
+  fireEvent.click(screen.getByRole('button', { name: 'Load videos' }));
+}
+
+describe('pasted lists', () => {
+  it('keeps one card per valid unique link, in order, and reports what it dropped', () => {
+    render(<App />);
+
+    load(
+      [
+        'https://a.example/one.mp4',
+        '',
+        '   https://a.example/one.mp4   ',
+        'this is not a link',
+        'ftp://a.example/ignored.mp4',
+        'https://a.example/two.mp4',
+      ].join('\n'),
+    );
+
+    const cards = previewCards();
+    expect(cards).toHaveLength(2);
+    expect(cards[0]).toHaveAccessibleName('Preview one.mp4');
+    expect(cards[1]).toHaveAccessibleName('Preview two.mp4');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Skipped 2 lines that were not a link. Merged 1 duplicate.',
+    );
+  });
+
+  it('shows the no-valid-links empty state when nothing parses', () => {
+    render(<App />);
+
+    load('nothing here\nnor here');
+
+    expect(screen.getByText('No videos loaded.')).toBeInTheDocument();
+    expect(screen.queryAllByRole('button', { name: /^Preview / })).toHaveLength(0);
+  });
+
+  it('does not touch the grid until Load is pressed', () => {
+    render(<App />);
+    const before = previewCards().length;
+
+    fireEvent.change(screen.getByLabelText('Video links'), {
+      target: { value: 'https://a.example/only.mp4' },
+    });
+
+    expect(previewCards()).toHaveLength(before);
+  });
+});
+
+describe('preview playback', () => {
+  it('starts a muted 2x preview when a mouse pointer enters, and rewinds on leave', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    firePointer('pointerover', 'mouse', card);
+    await settlePlay();
+
+    expect(media.isPlaying(video)).toBe(true);
+    expect(media.playbackRate(video)).toBe(2);
+    expect(video.muted).toBe(true);
+
+    act(() => {
+      media.reportDuration(video, 45);
+    });
+    fireEvent.timeUpdate(video);
+
+    firePointer('pointerout', 'mouse', card);
+    await settlePlay();
+
+    expect(media.isPlaying(video)).toBe(false);
+    expect(media.currentTime(video)).toBe(0);
+  });
+
+  it('ignores touch and pen pointers for hover', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    firePointer('pointerover', 'touch', card);
+    firePointer('pointerover', 'pen', card);
+    await settlePlay();
+
+    expect(media.isPlaying(video)).toBe(false);
+  });
+
+  it('toggles on a touch tap without triggering hover behaviour', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    firePointer('pointerup', 'touch', card);
+    await settlePlay();
+    expect(media.isPlaying(video)).toBe(true);
+
+    firePointer('pointerup', 'touch', card);
+    await settlePlay();
+    expect(media.isPlaying(video)).toBe(false);
+  });
+
+  it('toggles from the keyboard', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    card.focus();
+    expect(card).toHaveFocus();
+
+    fireEvent.keyDown(card, { key: 'Enter' });
+    await settlePlay();
+    expect(media.isPlaying(video)).toBe(true);
+
+    fireEvent.keyDown(card, { key: ' ' });
+    await settlePlay();
+    expect(media.isPlaying(video)).toBe(false);
+  });
+
+  it('stays quiet when the browser rejects play', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    media.rejectNextPlay = true;
+    firePointer('pointerover', 'mouse', card);
+    await settlePlay();
+
+    expect(media.isPlaying(video)).toBe(false);
+    expect(screen.queryByText(/failed/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('the length filter', () => {
+  it('shows only matching videos once durations are known, including the boundaries', async () => {
+    render(<App />);
+    const cards = previewCards();
+
+    act(() => {
+      media.reportDuration(videoOf(cards[0]), 59.9);
+      media.reportDuration(videoOf(cards[1]), 60);
+      media.reportDuration(videoOf(cards[2]), 300);
+      media.reportDuration(videoOf(cards[3]), 300.1);
+    });
+
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('radio', { name: 'Short' }));
+    expect(previewCards().map((card) => card.getAttribute('aria-label'))).toEqual([
+      'Preview flower.mp4',
+    ]);
+
+    await user.click(screen.getByRole('radio', { name: 'Medium' }));
+    expect(previewCards()).toHaveLength(2);
+
+    await user.click(screen.getByRole('radio', { name: 'Long' }));
+    expect(previewCards()).toHaveLength(1);
+
+    await user.click(screen.getByRole('radio', { name: 'All' }));
+    expect(previewCards()).toHaveLength(9);
+  });
+
+  it('hides videos with unknown length outside All, then moves them into place', async () => {
+    render(<App />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('radio', { name: 'Short' }));
+    expect(screen.getByText('Nothing in Short.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: 'All' }));
+    const card = previewCards()[0];
+    expect(screen.getAllByText('Loading')).toHaveLength(9);
+
+    act(() => {
+      media.reportDuration(videoOf(card), 12);
+    });
+
+    expect(screen.getAllByText('Loading')).toHaveLength(8);
+    expect(screen.getByText('0:12')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: 'Short' }));
+    expect(previewCards()).toHaveLength(1);
+  });
+
+  it('keeps a failed link under All only and leaves its siblings playable', async () => {
+    render(<App />);
+    const cards = previewCards();
+
+    act(() => {
+      media.reportError(videoOf(cards[0]));
+    });
+
+    expect(screen.getByText('Failed to load')).toBeInTheDocument();
+    expect(previewCards()).toHaveLength(8);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Short' }));
+    expect(screen.queryByText('Failed to load')).not.toBeInTheDocument();
+  });
+});
+
+describe('the cap', () => {
+  it('renders 30 cards and says so when the list is longer', () => {
+    render(<App />);
+
+    const many = Array.from({ length: 31 }, (_, index) => `https://a.example/clip-${index}.mp4`);
+    load(many.join('\n'));
+
+    expect(previewCards()).toHaveLength(30);
+    expect(screen.getByText('Showing first 30 of 31 links.')).toBeInTheDocument();
+    expect(previewCards().at(-1)).toHaveAccessibleName('Preview clip-29.mp4');
+    expect(
+      previewCards().some((card) => card.getAttribute('aria-label') === 'Preview clip-30.mp4'),
+    ).toBe(false);
+  });
+
+  it('shows no notice at exactly 30 links', () => {
+    render(<App />);
+
+    const thirty = Array.from({ length: 30 }, (_, index) => `https://a.example/clip-${index}.mp4`);
+    load(thirty.join('\n'));
+
+    expect(previewCards()).toHaveLength(30);
+    expect(screen.queryByText(/Showing first/)).not.toBeInTheDocument();
+  });
+});
+
+describe('loading a new list', () => {
+  it('resets the filter and forgets old durations and failures', async () => {
+    render(<App />);
+    const cards = previewCards();
+
+    act(() => {
+      media.reportDuration(videoOf(cards[0]), 5);
+      media.reportError(videoOf(cards[1]));
+    });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Short' }));
+    expect(previewCards()).toHaveLength(1);
+
+    load('https://b.example/fresh.mp4');
+
+    expect(screen.getByRole('radio', { name: 'All' })).toBeChecked();
+    expect(previewCards()).toHaveLength(1);
+    expect(screen.getByText('Loading')).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load')).not.toBeInTheDocument();
+  });
+});
