@@ -377,3 +377,59 @@ describe('keyboard and tab order', () => {
     expect(visited.length).toBeGreaterThan(0);
   });
 });
+
+describe('card sound', () => {
+  it('offers a toggle on playable cards and none on the error tile', () => {
+    render(<App />);
+    expect(screen.getAllByRole('button', { name: /^Sound for / })).toHaveLength(9);
+
+    act(() => {
+      media.reportError(videoOf(previewCards()[0]));
+    });
+
+    expect(screen.getByText('Failed to load')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Sound for / })).toHaveLength(8);
+  });
+
+  it('starts muted and switches only its own card', async () => {
+    render(<App />);
+    const cards = previewCards();
+    const first = videoOf(cards[0]);
+    const second = videoOf(cards[1]);
+    const toggle = screen.getAllByRole('button', { name: /^Sound for / })[0];
+
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(first.muted).toBe(true);
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(first.muted).toBe(false);
+    expect(second.muted).toBe(true);
+  });
+
+  it('previews with sound once the card is unmuted', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    await userEvent.click(screen.getAllByRole('button', { name: /^Sound for / })[0]);
+    firePointer('pointerover', 'mouse', card);
+    await settlePlay();
+
+    expect(media.isPlaying(video)).toBe(true);
+    expect(video.muted).toBe(false);
+    expect(media.playbackRate(video)).toBe(2);
+  });
+
+  it('does not treat a touch on the sound control as a play toggle', async () => {
+    render(<App />);
+    const video = videoOf(previewCards()[0]);
+    const toggle = screen.getAllByRole('button', { name: /^Sound for / })[0];
+
+    firePointer('pointerup', 'touch', toggle);
+    await settlePlay();
+
+    expect(media.isPlaying(video)).toBe(false);
+  });
+});

@@ -126,9 +126,11 @@ Named as below, and these names are the vocabulary the code and tests should use
 
 ### Hover and touch behavior
 
-- Videos are always muted; there is no unmute affordance anywhere in this version.
+- A preview starts muted, because browsers only autoplay muted video. Each playable card carries a sound toggle that switches that one card's audio. The choice lasts as long as the card does and is lost when a new list loads.
+- The sound toggle is a separate button from the card's play control, so pressing it never starts or stops a preview. Error tiles have no toggle, because there is nothing to play.
+- Playback applies the card's current sound setting, so a card the visitor unmuted previews with sound from then on. Unmuting is itself a gesture, which is what makes a browser allow sound at all.
 - Hover is gated on pointer type. Only a pointer whose type is mouse may start hover playback; touch and pen never do, so a stylus moving across the grid cannot trigger a preview.
-- On mouse enter: set playback rate to 2x, then play. A rejected play promise is swallowed silently — no error state, no console-visible user-facing text, no change to the card's visuals.
+- On mouse enter: set playback rate to 2x, apply the card's sound setting, then play. A rejected play promise is swallowed silently — no error state, no console-visible user-facing text, no change to the card's visuals.
 - On mouse leave: pause and set the current time back to zero, so the next hover starts from the first frame.
 - On touch: a tap toggles play and pause on that card. A tap starts at 2x and muted, the same preview playback as hover, and pausing freezes where it is rather than rewinding. Rewinding is a hover-leave behavior only.
 - Keyboard play/pause takes the same path as a touch tap: same rate, same muting, same pause-without-rewind. The card is a focusable control that responds to Enter and Space.
@@ -147,6 +149,7 @@ Named as below, and these names are the vocabulary the code and tests should use
 - The still frame is sought to roughly two seconds in, or a tenth of the clip if shorter, once metadata arrives. Frame zero is commonly a black or white fade and makes the grid look broken. Playback still begins at zero the first time a preview starts, and hover-leave rewinds to zero.
 - The video element stays invisible until it has actually painted a frame. The card's own dark surface owns the colour until then, so no card flashes white or grey while loading.
 - Each playable card carries a small play cue over the still frame, hidden while playing, so a well that never paints still reads as something you can play.
+- The sound toggle sits at the frame's top right, 30px and round, showing a crossed speaker while muted and a plain speaker while unmuted. Its pressed state reflects whether sound is on, and its accessible name includes the file name so a screen reader can tell two toggles apart.
 - The duration sits on a thin rail beneath the frame that fills as the preview plays, so the label and the playhead are one element.
 - The loading badge reads "Loading" and is present exactly while the duration is unknown and the link has not failed.
 - The error tile shows the failing link and a short failure label, and is visually distinct from a loading or playable card. It is not focusable for playback because there is nothing to play.
@@ -172,8 +175,9 @@ Named as below, and these names are the vocabulary the code and tests should use
 ### Styling and accessibility
 
 - Cards sit in a CSS grid that fills available width with a minimum card width, so column count follows the viewport without breakpoint-specific markup.
-- Cards are keyboard-focusable, show a visible focus ring, and act as buttons for playback purposes. The filter is a labelled single-choice group reachable and changeable by keyboard.
+- Cards are keyboard-focusable, show a visible focus ring, and act as buttons for playback purposes. The filter is a labelled single-choice group reachable and changeable by keyboard. The sound toggle is a real button in the tab order, labelled with its file name and exposing its pressed state.
 - Contrast and focus styling must survive the dark-on-light default look; the aesthetic itself is not otherwise specified here (see Further Notes).
+- Radius is nested by role rather than applied uniformly: 12px on a frame, 10px on the controls in the input panel and filter, 6px on chips inside a frame, and a pill on the rail and the sound toggle. Cards are not separated by shadows; the frame's own inset hairline does that work.
 
 ### Hosting
 
@@ -211,6 +215,7 @@ Harness caveats worth designing around, because jsdom is not a browser:
 - Pasting a list and pressing Load yields one card per valid, unique link, in order, with blanks, non-http lines, and duplicates dropped. Pressing Load is required: typing alone changes nothing.
 - A mouse pointer entering a card starts playback at 2x and muted. Leaving pauses and resets current time to zero. A rejected play promise surfaces nothing to the user and leaves the grid usable.
 - A pointer event with touch or pen type does not start playback.
+- A card starts muted. Its sound toggle changes only that card's audio, reports its pressed state, and does not start or stop the preview; an error tile offers no toggle at all.
 - A touch tap starts playback, and a second tap pauses it.
 - Keyboard focus plus Enter or Space toggles playback on the focused card.
 - Each bucket shows exactly the right cards once durations are known, including the boundaries: 59.9 Short, 60 Medium, 300 Medium, 300.1 Long.
@@ -233,7 +238,7 @@ None. This is a new project with no existing test suite, so these tests establis
 - Filters other than duration, and sorting.
 - Fetching titles, thumbnails, tags, or any metadata beyond what the video file itself provides in the browser.
 - Importing links from files, and exporting or sharing a list.
-- Sound, a full-screen or detail player view, and playback controls beyond hover and tap.
+- A volume slider, a global mute across cards, a full-screen or detail player view, and playback controls beyond hover, tap and the per-card sound toggle.
 - Server-side caching of durations.
 - Handling of CORS-restricted or hotlink-protected hosts beyond showing the error tile.
 - Cross-card coordination of playback: stopping one preview when another starts.
@@ -241,7 +246,7 @@ None. This is a new project with no existing test suite, so these tests establis
 
 ## Further Notes
 
-- Browsers only allow autoplay for muted video, which is why previews are always muted. That constraint, not a design preference, is what makes hover preview possible without a click.
+- Browsers only allow autoplay for muted video, which is why every preview starts muted. That constraint, not a design preference, is what makes hover preview possible without a click; sound only ever begins from the explicit sound toggle.
 - The 30-video cap is simultaneously a performance limit and what keeps the filter trustworthy, because the filter depends on per-video metadata. A larger-scale version needs durations stored on the server or virtualized rendering with lazy metadata loading — the latter reintroduces the filtering problem the cap avoids, since offscreen cards never learn their duration.
 - Multiple previews can play at once: hover-leave stops a card on mouse, but touch taps are independent, so tapping three cards leaves three previews running. If that proves annoying, the shell can own a single active-preview URL and pass an active flag down; the spec deliberately stays with per-card independence because it keeps the card-to-shell contract to two callbacks.
 - The visual direction is unspecified: the PRD asks for a responsive card grid, visible focus, and clear loading, duration, and error states, and nothing about typography, colour, or motion. An implementer is free to choose, as long as error, loading, and playable cards stay visually distinguishable without relying on colour alone.

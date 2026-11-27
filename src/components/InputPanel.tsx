@@ -19,6 +19,10 @@ function feedbackFor({ links, skipped, duplicates }: ParseResult): string | null
   return parts.join(' ');
 }
 
+/**
+ * The button is last in the DOM, so Tab reaches the box before the action,
+ * and grid areas put it beside the label. Visual order and tab order agree.
+ */
 export function InputPanel({ initialText, onLoad }: Props) {
   const [text, setText] = useState(initialText);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -35,25 +39,27 @@ export function InputPanel({ initialText, onLoad }: Props) {
       <label className="panel__label" htmlFor={inputId}>
         Video links
       </label>
-      <div className="panel__row">
-        <textarea
-          id={inputId}
-          className="panel__input"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          spellCheck={false}
-          aria-describedby={hintId}
-        />
-        <button className="panel__button" type="submit">
-          Load videos
-        </button>
-      </div>
+
+      <textarea
+        id={inputId}
+        className="panel__input"
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        spellCheck={false}
+        aria-describedby={hintId}
+      />
+
       <p className="panel__hint" id={hintId}>
         One link per line. Only http and https links are kept.
       </p>
+
       <p className="panel__feedback" role="status">
         {feedback}
       </p>
+
+      <button className="panel__button" type="submit">
+        Load videos
+      </button>
     </form>
   );
 }

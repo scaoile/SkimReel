@@ -22,8 +22,14 @@
   --frame: #0e1112;
   --oxide: #8e3b32;
 
+  /* Radius is nested by role: the frame is the largest thing, controls sit inside it,
+     chips inside those. One scale, no arbitrary values. */
+  --r-frame: 12px;
+  --r-control: 10px;
+  --r-chip: 6px;
+  --r-pill: 999px;
+
   --font-ui: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --radius: 2px;
 }
 
 *,
@@ -67,7 +73,7 @@ body {
   align-items: baseline;
   justify-content: space-between;
   gap: 6px 40px;
-  padding-bottom: 18px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--ink);
 }
 
@@ -86,56 +92,41 @@ body {
   color: var(--ink-soft);
 }
 
-/* Input panel */
+/* Input panel: label and action share the top row, the box runs full width beneath,
+   and the button stays last in the DOM so Tab reaches the box before the action. */
 
 .panel {
   display: grid;
-  gap: 8px;
-  padding: 24px 0 4px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'label button'
+    'input input'
+    'hint feedback';
+  gap: 10px 16px;
+  align-items: center;
+  padding: 24px 0 0;
 }
 
 .panel__label {
+  grid-area: label;
   font-size: 14px;
   font-weight: 600;
 }
 
-.panel__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: start;
-}
-
-.panel__input {
-  width: 100%;
-  min-height: 168px;
-  padding: 10px 12px;
-  background: var(--surface);
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius);
-  color: var(--ink);
-  font: inherit;
-  font-size: 15px;
-  line-height: 1.6;
-  resize: vertical;
-}
-
-.panel__input:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 1px;
-}
-
 .panel__button {
-  min-height: 48px;
-  padding: 0 22px;
+  grid-area: button;
+  justify-self: end;
+  min-height: 40px;
+  padding: 0 18px;
   background: var(--ink);
   border: 1px solid var(--ink);
-  border-radius: var(--radius);
+  border-radius: var(--r-control);
   color: var(--surface);
   font: inherit;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  transition: background 140ms ease;
 }
 
 .panel__button:hover {
@@ -148,17 +139,41 @@ body {
   outline-offset: 2px;
 }
 
+.panel__input {
+  grid-area: input;
+  width: 100%;
+  min-height: 152px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-control);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.panel__input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-color: var(--ink);
+}
+
 .panel__hint {
+  grid-area: hint;
   margin: 0;
   color: var(--ink-soft);
   font-size: 13px;
 }
 
 .panel__feedback {
+  grid-area: feedback;
+  justify-self: end;
   margin: 0;
-  min-height: 22px;
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 13px;
+  text-align: right;
 }
 
 /* Control bar */
@@ -169,8 +184,7 @@ body {
   align-items: flex-end;
   justify-content: space-between;
   gap: 12px 24px;
-  padding: 16px 0;
-  border-top: 1px solid var(--rule);
+  padding: 20px 0;
   border-bottom: 1px solid var(--rule);
 }
 
@@ -190,8 +204,11 @@ body {
 
 .filter__track {
   display: inline-flex;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius);
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-control);
 }
 
 .filter__option {
@@ -213,15 +230,13 @@ body {
   flex: 1 1 auto;
   align-items: center;
   justify-content: center;
-  min-width: 84px;
-  min-height: 44px;
-  padding: 0 14px;
+  min-width: 80px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: calc(var(--r-control) - 3px);
   font-size: 15px;
   cursor: pointer;
-}
-
-.filter__option + .filter__option .filter__face {
-  border-left: 1px solid var(--rule-strong);
+  transition: background 140ms ease;
 }
 
 .filter__face:hover {
@@ -239,24 +254,24 @@ body {
 
 .filter__option input:focus-visible + .filter__face {
   outline: 2px solid var(--ink);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 .filter__hint {
   margin: 0;
-  max-width: 52ch;
   color: var(--ink-soft);
   font-size: 13px;
+  text-wrap: pretty;
 }
 
 /* Grid */
 
 .grid-region {
-  padding-top: 20px;
+  padding-top: 24px;
 }
 
 .grid__notice {
-  margin: 0 0 18px;
+  margin: 0 0 20px;
   color: var(--ink-soft);
   font-size: 14px;
 }
@@ -264,41 +279,37 @@ body {
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 264px), 1fr));
-  gap: 26px 18px;
+  gap: 28px 20px;
 }
 
 .grid__empty {
-  margin: 36px 0;
-  max-width: 48ch;
+  margin: 0;
+  padding: 24px;
+  max-width: 52ch;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-frame);
   color: var(--ink-soft);
 }
 
 .grid__empty-lead {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   color: var(--ink);
   font-weight: 600;
 }
 
-/* Video card: a frame, its rail with the timecode at its end, then name and host.
-   No box, no shadow. */
+/* Video card: a stage holding the frame, its badges and the sound toggle,
+   then the rail with the timecode at its end, then name and host. No shadow, no box. */
 
 .card {
   min-width: 0;
   margin: 0;
 }
 
-.card__target {
-  display: grid;
-  min-width: 0;
-  border-radius: var(--radius);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.card__target:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
+.card__stage {
+  position: relative;
+  border-radius: var(--r-frame);
 }
 
 .card__frame {
@@ -306,6 +317,21 @@ body {
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: var(--frame);
+  border-radius: var(--r-frame);
+  box-shadow: inset 0 0 0 1px rgba(22, 25, 26, 0.14);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: box-shadow 160ms ease;
+}
+
+/* A light hairline on hover says the frame is a control, without a lift or a zoom. */
+.card__frame:hover {
+  box-shadow: inset 0 0 0 1px rgba(245, 246, 242, 0.32);
+}
+
+.card__frame:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 
 .card__video {
@@ -322,18 +348,6 @@ body {
 
 .card__video--ready {
   opacity: 1;
-}
-
-.card__badge {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  padding: 1px 6px;
-  background: rgba(245, 246, 242, 0.94);
-  border-radius: var(--radius);
-  color: var(--ink);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 /* A blank well is honest: metadata-only preload often paints no frame.
@@ -353,8 +367,54 @@ body {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
-.card__target[data-playing='true'] .card__cue {
+.card__frame[data-playing='true'] .card__cue {
   opacity: 0;
+}
+
+.card__frame[data-playing='true'] {
+  box-shadow:
+    inset 0 0 0 1px rgba(245, 246, 242, 0.4),
+    inset 0 0 0 4px rgba(245, 246, 242, 0.06);
+}
+
+.card__badge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 2px 8px;
+  background: rgba(245, 246, 242, 0.94);
+  border-radius: var(--r-chip);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.card__sound {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: rgba(245, 246, 242, 0.9);
+  border: 1px solid rgba(22, 25, 26, 0.12);
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.card__sound:hover {
+  background: var(--surface);
+}
+
+/* Light halo with an ink ring reads on both a dark frame and a bright one. */
+.card__sound:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--surface);
 }
 
 /* The rail and its timecode are one row: the bar fills what the label leaves. */
@@ -362,39 +422,46 @@ body {
 .card__rail-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  min-height: 18px;
-  margin-top: 6px;
+  min-height: 16px;
+  margin-top: 12px;
 }
 
 .card__rail {
   position: relative;
   flex: 1 1 auto;
-  height: 3px;
+  height: 4px;
   overflow: hidden;
-  background: var(--rule-strong);
+  background: var(--rule);
+  border-radius: var(--r-pill);
 }
 
 .card__rail-fill {
   position: absolute;
   inset: 0;
   background: var(--ink);
+  border-radius: var(--r-pill);
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 160ms linear;
 }
 
-.card__target[data-playing='true'] .card__frame {
-  box-shadow: inset 0 0 0 1px rgba(245, 246, 242, 0.4);
-}
-
 .card__meta {
   display: grid;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
   margin: 8px 0 0;
   font-size: 13px;
+}
+
+.card__name {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card__host {
@@ -402,14 +469,6 @@ body {
   overflow: hidden;
   color: var(--ink-soft);
   font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.card__name {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -427,7 +486,9 @@ body {
   display: grid;
   place-items: center;
   background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--oxide);
+  border-radius: var(--r-frame);
+  box-shadow: inset 0 0 0 1px rgba(142, 59, 50, 0.55);
+  cursor: default;
 }
 
 .card__failed-label {
@@ -438,7 +499,7 @@ body {
 }
 
 .card__url {
-  margin: 8px 0 0;
+  margin: 12px 0 0;
   color: var(--ink-soft);
   font-size: 12px;
   line-height: 1.5;
@@ -448,7 +509,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .card__rail-fill,
   .card__video,
-  .card__cue {
+  .card__cue,
+  .card__sound,
+  .panel__button,
+  .filter__face {
     transition: none;
   }
 }
@@ -463,12 +527,23 @@ body {
     align-items: stretch;
   }
 
-  .panel__row {
+  .panel {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      'label'
+      'input'
+      'button'
+      'hint'
+      'feedback';
   }
 
   .panel__button {
-    width: 100%;
+    justify-self: stretch;
+  }
+
+  .panel__feedback {
+    justify-self: start;
+    text-align: left;
   }
 
   .filter__track {
@@ -478,6 +553,6 @@ body {
 
   .filter__face {
     min-width: 0;
-    padding: 0 8px;
+    padding: 0 10px;
   }
 }

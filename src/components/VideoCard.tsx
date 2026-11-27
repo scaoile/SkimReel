@@ -12,8 +12,39 @@ type Props = {
 /** True only when a mouse pointer crosses the card's edge, not when it moves inside. */
 function crossesMouseEdge(event: React.PointerEvent<HTMLDivElement>): boolean {
   if (event.pointerType !== 'mouse') return false;
-  // Ignore moves between the frame, the rail and the cue inside one card.
   return !event.currentTarget.contains(event.relatedTarget as Node | null);
+}
+
+const SPEAKER = 'M4 9.2h3.1L11.6 5.6v12.8L7.1 14.8H4z';
+
+function SpeakerOn() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+      <path d={SPEAKER} fill="currentColor" />
+      <path
+        d="M15 9.2a4.6 4.6 0 0 1 0 5.6M17.7 6.6a8.4 8.4 0 0 1 0 10.8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function SpeakerOff() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+      <path d={SPEAKER} fill="currentColor" />
+      <path
+        d="M15.4 9.6l4.8 4.8m0-4.8l-4.8 4.8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }
 
 export function VideoCard({ url, duration, failed, onMetadata, onError }: Props) {
@@ -23,6 +54,7 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [hasFrame, setHasFrame] = useState(false);
+  const [muted, setMuted] = useState(true);
   const name = fileNameOf(url);
   const host = hostOf(url);
 
@@ -46,7 +78,7 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
       }
     }
     video.playbackRate = 2;
-    video.muted = true;
+    video.muted = muted;
     video
       .play()
       .then(() => setPlaying(true))
@@ -71,6 +103,13 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
   const toggle = () => {
     if (playing) pause();
     else start();
+  };
+
+  const toggleSound = () => {
+    const video = videoRef.current;
+    const next = !muted;
+    setMuted(next);
+    if (video) video.muted = next;
   };
 
   const handlePointerOver = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -128,18 +167,20 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
   return (
     <article className="card">
       <div
-        className="card__target"
-        role="button"
-        tabIndex={0}
-        aria-pressed={playing}
-        aria-label={`Preview ${name}`}
-        data-playing={playing}
+        className="card__stage"
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
-        onPointerUp={handlePointerUp}
-        onKeyDown={handleKeyDown}
       >
-        <div className="card__frame">
+        <div
+          className="card__frame"
+          role="button"
+          tabIndex={0}
+          aria-pressed={playing}
+          aria-label={`Preview ${name}`}
+          data-playing={playing}
+          onPointerUp={handlePointerUp}
+          onKeyDown={handleKeyDown}
+        >
           <video
             ref={videoRef}
             className={hasFrame ? 'card__video card__video--ready' : 'card__video'}
@@ -152,22 +193,34 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
             onError={() => onError(url)}
             onTimeUpdate={handleTimeUpdate}
           />
-          {duration === undefined ? <span className="card__badge">Loading</span> : null}
           <span className="card__cue" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="26" height="26" focusable="false">
               <path d="M8 4.8v14.4L19.5 12z" fill="currentColor" />
             </svg>
           </span>
         </div>
-        <span className="card__rail-row">
-          <span className="card__rail" aria-hidden="true">
-            <span className="card__rail-fill" style={{ transform: `scaleX(${progress})` }} />
-          </span>
-          {duration === undefined ? null : (
-            <span className="card__time">{formatDuration(duration)}</span>
-          )}
-        </span>
+
+        {duration === undefined ? <span className="card__badge">Loading</span> : null}
+
+        <button
+          type="button"
+          className="card__sound"
+          aria-pressed={!muted}
+          aria-label={`Sound for ${name}`}
+          title={muted ? 'Turn sound on' : 'Turn sound off'}
+          onClick={toggleSound}
+        >
+          {muted ? <SpeakerOff /> : <SpeakerOn />}
+        </button>
       </div>
+
+      <div className="card__rail-row">
+        <span className="card__rail" aria-hidden="true">
+          <span className="card__rail-fill" style={{ transform: `scaleX(${progress})` }} />
+        </span>
+        {duration === undefined ? null : <span className="card__time">{formatDuration(duration)}</span>}
+      </div>
+
       <div className="card__meta">
         <p className="card__name" title={url}>
           {name}

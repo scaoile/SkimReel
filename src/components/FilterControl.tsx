@@ -24,7 +24,7 @@ export function FilterControl({ value, onChange }: Props) {
         ))}
       </div>
       <p className="filter__hint">
-        Short is under a minute, medium runs one to five minutes, long is over five.
+        Short is under 1:00. Medium is 1:00 to 5:00. Long is over 5:00.
       </p>
     </fieldset>
   );
