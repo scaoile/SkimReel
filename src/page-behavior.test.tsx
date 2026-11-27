@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 import { SAMPLE_TEXT } from './lib/samples';
@@ -21,9 +21,13 @@ function firePointer(
   kind: 'pointerover' | 'pointerout' | 'pointerup' | 'pointerdown' | 'pointermove' | 'pointercancel',
   pointerType: string,
   element: Element,
-  init: { clientX?: number; pointerId?: number } = {},
+  init: { clientX?: number; pointerId?: number; relatedTarget?: Element | null } = {},
 ) {
-  const event = new MouseEvent(kind, { bubbles: true, clientX: init.clientX ?? 0 });
+  const event = new MouseEvent(kind, {
+    bubbles: true,
+    clientX: init.clientX ?? 0,
+    relatedTarget: init.relatedTarget ?? null,
+  });
   Object.defineProperty(event, 'pointerType', { value: pointerType });
   Object.defineProperty(event, 'pointerId', { value: init.pointerId ?? 1 });
   fireEvent(element, event);
@@ -102,6 +106,73 @@ describe('preview playback', () => {
 
     expect(media.isPlaying(video)).toBe(false);
     expect(media.currentTime(video)).toBe(0);
+  });
+
+  it('keeps playing while the pointer moves anywhere inside the card', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    const article = card.closest('article') as HTMLElement;
+
+    act(() => {
+      media.reportDuration(video, 45);
+    });
+    firePointer('pointerover', 'mouse', card);
+    await settlePlay();
+
+    const rail = within(article).getByRole('slider');
+    act(() => {
+      video.currentTime = 18;
+    });
+
+    // Leaving the frame for the rail is still inside the card, so nothing rewinds.
+    firePointer('pointerout', 'mouse', card, { relatedTarget: rail });
+    firePointer('pointerover', 'mouse', rail, { relatedTarget: card });
+    await settlePlay();
+
+    expect(media.isPlaying(video)).toBe(true);
+    expect(media.currentTime(video)).toBe(18);
+  });
+
+  it('loops the preview only while the pointer is on the card', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    firePointer('pointerover', 'mouse', card);
+    await settlePlay();
+    expect(video.loop).toBe(true);
+
+    firePointer('pointerout', 'mouse', card);
+    await settlePlay();
+    expect(video.loop).toBe(false);
+
+    // A tapped preview plays through once, so it never loops.
+    firePointer('pointerup', 'touch', card);
+    await settlePlay();
+    expect(media.isPlaying(video)).toBe(true);
+    expect(video.loop).toBe(false);
+  });
+
+  it('mutes the card again when the pointer leaves', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+    const toggle = screen.getAllByRole('button', { name: /^Sound for / })[0];
+
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    firePointer('pointerover', 'mouse', card);
+    await settlePlay();
+    expect(video.muted).toBe(false);
+
+    firePointer('pointerout', 'mouse', card);
+    await settlePlay();
+
+    expect(video.muted).toBe(true);
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('ignores touch and pen pointers for hover', async () => {

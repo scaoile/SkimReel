@@ -137,12 +137,14 @@ Named as below, and these names are the vocabulary the code and tests should use
 
 ### Hover and touch behavior
 
-- A preview starts muted, because browsers only autoplay muted video. Each playable card carries a sound toggle that switches that one card's audio. The choice lasts as long as the card does and is lost when a new list loads.
+- A preview starts muted, because browsers only autoplay muted video. Each playable card carries a sound toggle that switches that one card's audio. The choice lasts as long as the pointer stays on the card: leaving mutes it again, and a new list starts every card muted.
 - The sound toggle is a separate button from the card's play control, so pressing it never starts or stops a preview. Error tiles have no toggle, because there is nothing to play.
-- Playback applies the card's current sound setting, so a card the visitor unmuted previews with sound from then on. Unmuting is itself a gesture, which is what makes a browser allow sound at all.
+- Playback applies the card's current sound setting, so a card the visitor unmuted previews with sound. Unmuting is itself a gesture, which is what makes a browser allow sound at all. Noise never outlives the hover that asked for it.
 - Hover is gated on pointer type. Only a pointer whose type is mouse may start hover playback; touch and pen never do, so a stylus moving across the grid cannot trigger a preview.
-- On mouse enter: set playback rate to 2x, apply the card's sound setting, then play. A rejected play promise is swallowed silently — no error state, no console-visible user-facing text, no change to the card's visuals.
-- On mouse leave: pause and set the current time back to zero, so the next hover starts from the first frame.
+- Hover belongs to the whole card, not to the frame alone. The pointer may wander from the frame onto the rail, the timecode or the labels and the preview keeps playing; only crossing the card's outer edge ends it.
+- On mouse enter: set playback rate to 2x, apply the card's sound setting, loop the preview, then play. A rejected play promise is swallowed silently — no error state, no console-visible user-facing text, no change to the card's visuals.
+- A hovered preview loops, because the card is playing for as long as the pointer rests on it; a tap or key preview plays through once and stops at the end.
+- On mouse leave: pause, set the current time back to zero, clear the loop and mute the card again, so the next hover starts from the first frame, muted, as it began.
 - On touch: a tap toggles play and pause on that card. A tap starts at 2x and muted, the same preview playback as hover, and pausing freezes where it is rather than rewinding. Rewinding is a hover-leave behavior only.
 - Keyboard play/pause takes the same path as a touch tap: same rate, same muting, same pause-without-rewind. The card is a focusable control that responds to Enter and Space.
 - The rail beneath each frame is a seek control, not only an indicator. Dragging it moves the playhead to that position live, and releasing stops it following. Scrubbing works with touch and pen, because it is not a preview.
@@ -170,7 +172,8 @@ Named as below, and these names are the vocabulary the code and tests should use
 - The error tile shows the failing link and a short failure label, and is visually distinct from a loading or playable card. It is not focusable for playback because there is nothing to play.
 - Empty state copy is distinct per cause: no valid links in the pasted text versus no videos matching the selected bucket. The latter names the bucket.
 - Validation feedback after Load is a quiet single line that appears only when something was dropped, e.g. how many lines were skipped as invalid and how many duplicates were collapsed. Nothing appears when every line was used.
-- A YouTube card wears a small "YouTube" chip at the frame's foot, where a clip wears its loading badge, and its cue is an outbound arrow on its own light plate. A pale glyph disappears on a bright thumbnail, which is why the arrow is plated rather than bare.
+- The frame's top right corner belongs to exactly one control, whatever the card: a sound toggle on a clip, an outbound arrow on a YouTube card. Both are the same 30px paper puck with an ink glyph and a hairline, so the grid reads as one system.
+- A YouTube card wears an ink "YouTube" chip at the frame's foot, where a clip wears its loading badge. Ink, not paper, so it reads on a dark thumbnail and a bright one alike.
 - Where a clip shows a timecode, a YouTube card shows "Length unknown", so the row keeps its height and the reason it stays out of the buckets is on the card.
 
 ### YouTube links
@@ -205,8 +208,9 @@ Named as below, and these names are the vocabulary the code and tests should use
 - Cards sit in a CSS grid that fills available width with a minimum card width, so column count follows the viewport without breakpoint-specific markup.
 - Cards are keyboard-focusable, show a visible focus ring, and act as buttons for playback purposes. The filter is a labelled single-choice group reachable and changeable by keyboard. The sound toggle is a real button in the tab order, labelled with its file name and exposing its pressed state.
 - Contrast and focus styling must survive the dark-on-light default look; the aesthetic itself is not otherwise specified here (see Further Notes).
-- Radius is nested by role rather than applied uniformly: 12px on a frame, 10px on the controls in the input panel and filter, 6px on chips inside a frame, and a pill on the rail and the sound toggle. Cards are not separated by shadows; the frame's own inset hairline does that work.
-- Hovering or focusing a playable card raises a dark plate behind it that grows about 10px past the card's edges and inverts its labels to paper. The plate grows through inset so the grid never reflows, its corner stays concentric with the frame, and failed cards never raise one. YouTube cards raise it too: they are interactive, just not playable.
+- Radius is nested by role rather than applied uniformly: 8px on a frame, 6px on the controls in the input panel and filter, 4px on chips inside a frame, and a pill on the rail and the corner pucks. Cards are not separated by shadows; the frame's own inset hairline does that work.
+- Hovering a card raises a plate behind it that grows about 10px past the card's edges and inverts its labels to paper. The plate is ink thinned out, not ink itself, so it reads as a hover state rather than a hole in the page; its corner stays concentric with the frame (8px plus the 10px it grows by). It grows through inset so the grid never reflows, and failed cards never raise one.
+- The plate is hover only. A focused card keeps its focus ring but not the plate, so nothing appears to stay expanded after the pointer has gone. YouTube cards raise it too: they are interactive, just not playable.
 - The open prompt is the only floating layer in the app, so it is the only place a shadow is earned: a paper panel with the same radius and hairline as everything else, sitting on a scrim. Nothing else casts one.
 
 ### Hosting

@@ -14,7 +14,7 @@ type Props = {
 };
 
 /** True only when a mouse pointer crosses the card's edge, not when it moves inside. */
-function crossesMouseEdge(event: React.PointerEvent<HTMLDivElement>): boolean {
+function crossesMouseEdge(event: React.PointerEvent<HTMLElement>): boolean {
   if (event.pointerType !== 'mouse') return false;
   return !event.currentTarget.contains(event.relatedTarget as Node | null);
 }
@@ -116,7 +116,9 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
     return () => cancelAnimationFrame(handle);
   }, [playing, duration]);
 
-  const start = () => {
+  // Hover keeps running for as long as the pointer is anywhere on the card, so it loops.
+  // A tapped or keyed preview plays through once and stops at the end.
+  const start = (mode: 'hover' | 'toggle') => {
     const video = videoRef.current;
     if (!video) return;
     if (firstPlayPending.current) {
@@ -129,6 +131,7 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
     }
     video.playbackRate = 2;
     video.muted = muted;
+    video.loop = mode === 'hover';
     video
       .play()
       .then(() => setPlaying(true))
@@ -140,11 +143,15 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
     setPlaying(false);
   };
 
+  // Leaving the card puts it back exactly as it was found: rewound, muted and unlooped.
   const rewind = () => {
     const video = videoRef.current;
     if (!video) return;
     video.pause();
     video.currentTime = 0;
+    video.loop = false;
+    video.muted = true;
+    setMuted(true);
     firstPlayPending.current = true;
     setPlaying(false);
     setPosition(0);
@@ -153,7 +160,7 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
 
   const toggle = () => {
     if (playing) pause();
-    else start();
+    else start('toggle');
   };
 
   const toggleSound = () => {
@@ -221,11 +228,11 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
     event.preventDefault();
   };
 
-  const handlePointerOver = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (crossesMouseEdge(event)) start();
+  const handlePointerOver = (event: React.PointerEvent<HTMLElement>) => {
+    if (crossesMouseEdge(event)) start('hover');
   };
 
-  const handlePointerOut = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerOut = (event: React.PointerEvent<HTMLElement>) => {
     if (crossesMouseEdge(event)) rewind();
   };
 
@@ -330,12 +337,8 @@ export function VideoCard({ url, duration, failed, youTubeId, onMetadata, onErro
         : formatDuration(duration);
 
   return (
-    <article className="card">
-      <div
-        className="card__stage"
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
+    <article className="card" onPointerOver={handlePointerOver} onPointerOut={handlePointerOut}>
+      <div className="card__stage">
         <div
           className="card__frame"
           role="button"

@@ -22,11 +22,14 @@
   --frame: #0e1112;
   --oxide: #8e3b32;
 
+  /* Ink thinned out for the hover plate: lighter than ink, still carrying paper text. */
+  --plate: #333a37;
+
   /* Radius is nested by role: the frame is the largest thing, controls sit inside it,
      chips inside those. One scale, no arbitrary values. */
-  --r-frame: 12px;
-  --r-control: 10px;
-  --r-chip: 6px;
+  --r-frame: 8px;
+  --r-control: 6px;
+  --r-chip: 4px;
   --r-pill: 999px;
 
   --font-ui: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -309,60 +312,53 @@ body {
   isolation: isolate;
 }
 
-/* Hover plate: transparent at rest, then dark and larger than the card.
-   Growing through inset means the grid never reflows while the card appears to lift. */
+/* Hover plate: transparent at rest, then a thinned ink that grows past the card.
+   Growing through inset means the grid never reflows while the card appears to lift.
+   Hover only, so the plate drops the moment the pointer leaves. */
 .card::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   background: transparent;
-  /* Concentric with the frame: its 12px plus the 10px the plate grows by. */
-  border-radius: 22px;
+  /* Concentric with the frame: its 8px plus the 10px the plate grows by. */
+  border-radius: 18px;
   transition:
     inset 180ms ease,
     background 180ms ease;
 }
 
-.card:not(.card--failed):hover::before,
-.card:not(.card--failed):focus-within::before {
+.card:not(.card--failed):hover::before {
   inset: -10px;
-  background: var(--ink);
+  background: var(--plate);
 }
 
 /* On the plate the labels invert, because the plate is what the eye reads as the card. */
-.card:hover .card__name,
-.card:focus-within .card__name {
+.card:hover .card__name {
   color: var(--paper);
 }
 
-.card:hover .card__host,
-.card:focus-within .card__host {
+.card:hover .card__host {
   color: rgba(231, 232, 227, 0.7);
 }
 
-.card:hover .card__time,
-.card:focus-within .card__time {
+.card:hover .card__time {
   color: rgba(231, 232, 227, 0.74);
 }
 
-.card:hover .card__length-note,
-.card:focus-within .card__length-note {
+.card:hover .card__length-note {
   color: rgba(231, 232, 227, 0.74);
 }
 
-.card:hover .card__rail,
-.card:focus-within .card__rail {
+.card:hover .card__rail {
   background: rgba(231, 232, 227, 0.26);
 }
 
-.card:hover .card__rail-fill,
-.card:focus-within .card__rail-fill {
+.card:hover .card__rail-fill {
   background: var(--paper);
 }
 
-.card:hover .card__rail-knob,
-.card:focus-within .card__rail-knob {
+.card:hover .card__rail-knob {
   background: var(--paper);
   border-color: var(--ink);
 }
@@ -428,16 +424,21 @@ body {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
-/* A pale glyph vanishes on a bright thumbnail, so the outbound cue carries its own plate. */
+/* The outbound cue is the same corner puck as the sound control, in the same place:
+   one control per frame, top right, whichever kind of card it is. */
 .card__cue.card__cue--out {
+  inset: 10px 10px auto auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  background: rgba(245, 246, 242, 0.94);
+  border: 1px solid rgba(22, 25, 26, 0.14);
+  border-radius: var(--r-pill);
   color: var(--ink);
 }
 
 .card__cue--out svg {
-  padding: 9px;
-  background: rgba(245, 246, 242, 0.94);
-  border: 1px solid rgba(22, 25, 26, 0.14);
-  border-radius: var(--r-pill);
   filter: none;
 }
 
@@ -478,14 +479,16 @@ body {
   opacity: 1;
 }
 
+/* The chip names the destination, so it carries ink rather than paper and reads on
+   any thumbnail, dark or bright. */
 .card__chip {
   position: absolute;
   bottom: 10px;
   left: 10px;
   padding: 2px 8px;
-  background: rgba(245, 246, 242, 0.94);
+  background: var(--ink);
   border-radius: var(--r-chip);
-  color: var(--ink);
+  color: var(--paper);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -584,9 +587,11 @@ body {
   transition: transform 140ms ease;
 }
 
+/* The knob is a pointer affordance, so it rides the plate, the drag and its own focus.
+   Only the plate inverts it; a focused rail on paper keeps ink, which stays legible. */
 .card:hover .card__rail-knob,
-.card:focus-within .card__rail-knob,
-.card__rail-row--dragging .card__rail-knob {
+.card__rail-row--dragging .card__rail-knob,
+.card__rail:focus-visible .card__rail-knob {
   transform: translate(-50%, -50%) scale(1);
 }
 
