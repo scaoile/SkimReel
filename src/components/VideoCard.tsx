@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fileNameOf, formatDuration, hostOf } from '../lib/format';
 
 type Props = {
@@ -17,6 +17,14 @@ export function VideoCard({ url, duration, failed, onMetadata, onError }: Props)
   const [hasFrame, setHasFrame] = useState(false);
   const name = fileNameOf(url);
   const host = hostOf(url);
+
+  useEffect(() => {
+    // Captured at mount: React has already cleared the ref when this cleanup runs.
+    const video = videoRef.current;
+    return () => {
+      video?.pause();
+    };
+  }, []);
 
   const start = () => {
     const video = videoRef.current;

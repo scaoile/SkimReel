@@ -152,6 +152,32 @@ describe('preview playback', () => {
     expect(media.isPlaying(video)).toBe(false);
     expect(screen.queryByText(/failed/i)).not.toBeInTheDocument();
   });
+
+  it('recovers on the next hover after a blocked play', async () => {
+    render(<App />);
+    const card = previewCards()[0];
+    const video = videoOf(card);
+
+    media.rejectNextPlay = true;
+    firePointer('pointerover', 'mouse', card);
+    await settlePlay();
+    expect(media.isPlaying(video)).toBe(false);
+
+    firePointer('pointerout', 'mouse', card);
+    firePointer('pointerover', 'mouse', card);
+    await settlePlay();
+
+    expect(media.isPlaying(video)).toBe(true);
+  });
+
+  it('asks for metadata only, stays inline, and is muted before anything plays', () => {
+    render(<App />);
+    const video = videoOf(previewCards()[0]);
+
+    expect(video.getAttribute('preload')).toBe('metadata');
+    expect(video.hasAttribute('playsinline')).toBe(true);
+    expect(video.muted).toBe(true);
+  });
 });
 
 describe('the length filter', () => {
@@ -214,6 +240,9 @@ describe('the length filter', () => {
     });
 
     expect(screen.getByText('Failed to load')).toBeInTheDocument();
+    expect(
+      screen.getByText('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'),
+    ).toBeInTheDocument();
     expect(previewCards()).toHaveLength(8);
 
     const user = userEvent.setup();
@@ -268,5 +297,47 @@ describe('loading a new list', () => {
     expect(previewCards()).toHaveLength(1);
     expect(screen.getByText('Loading')).toBeInTheDocument();
     expect(screen.queryByText('Failed to load')).not.toBeInTheDocument();
+  });
+
+  it('stops a preview that belonged to the previous list', async () => {
+    render(<App />);
+    const oldCard = previewCards()[0];
+    const oldVideo = videoOf(oldCard);
+
+    firePointer('pointerover', 'mouse', oldCard);
+    await settlePlay();
+    expect(media.isPlaying(oldVideo)).toBe(true);
+
+    load('https://b.example/fresh.mp4');
+
+    expect(screen.queryByLabelText('Preview flower.mp4')).not.toBeInTheDocument();
+    expect(media.isPlaying(oldVideo)).toBe(false);
+  });
+});
+
+describe('keyboard and tab order', () => {
+  it('reaches the box, the Load button, the filter and then the cards', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.tab();
+    expect(screen.getByLabelText('Video links')).toHaveFocus();
+
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Load videos' })).toHaveFocus();
+
+    await user.tab();
+    expect(screen.getByRole('radio', { name: 'All' })).toHaveFocus();
+
+    const visited: Element[] = [];
+    for (let step = 0; step < 8; step += 1) {
+      await user.tab();
+      const focused = document.activeElement as Element;
+      visited.push(focused);
+      if (focused === previewCards()[0]) break;
+    }
+
+    expect(document.activeElement).toBe(previewCards()[0]);
+    expect(visited.length).toBeGreaterThan(0);
   });
 });
